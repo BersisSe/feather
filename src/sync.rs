@@ -1,28 +1,14 @@
-use crate::middlewares::Middleware;
-use crate::types::Response;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use crate::middleware::Middleware;
+use crate::response::Response;
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    io::{self, Read},
+    net::ToSocketAddrs,
+    sync::{Arc, RwLock},
+};
 use threadpool::ThreadPool;
-use tiny_http::{Request, Server};
-
-pub type Next = Arc<dyn Fn(&mut Request) -> Response + Send + Sync>;
-
-
-#[derive(Clone)]
-struct CloneableFn(Arc<dyn for<'a> Fn(&mut tiny_http::Request) -> Response + Send + Sync>);
-
-impl CloneableFn {
-    pub fn new<F>(f: F) -> Self
-    where
-        F: for<'a> Fn(&mut tiny_http::Request) -> Response + Send + Sync + 'static,
-    {
-        Self(Arc::new(f))
-    }
-
-    pub fn call(&self, req: &mut tiny_http::Request) -> Response {
-        (self.0)(req)
-    }
-}
+use tiny_http::{Header, Method, Request, Server};
 
 /// Configuration settings for the application.
 ///
@@ -34,123 +20,160 @@ impl CloneableFn {
 /// * `threads` - The number of threads to be used by the application's thread pool.
 #[derive(Debug, Clone)]
 pub struct AppConfig {
+    /// The number of threads to be used by the application's thread pool.
     pub threads: usize,
 }
 
+/// A route in the application.
+pub struct Route {
+    method: Method,
+    path: String,
+    middleware: Box<dyn Middleware>,
+}
+
+/// A Feather application.
 pub struct App {
     config: AppConfig,
-    routes: Arc<RwLock<HashMap<(String, String), CloneableFn>>>,
-    middlewares: Arc<Mutex<Vec<Box<dyn Middleware>>>>,
+    routes: Arc<RwLock<Vec<Route>>>,
+    middleware: Arc<RwLock<Vec<Box<dyn Middleware>>>>,
+}
+
+macro_rules! route_methods {
+    ($($method:ident $name:ident)+) => {
+        $(
+            pub fn $name<M: Middleware + 'static>(&mut self, path: impl Into<String>, middleware: M)
+            {
+                self.route(Method::$method, path.into(), middleware);
+            }
+        )+
+    }
 }
 
 impl App {
+    #[must_use]
     pub fn new(config: AppConfig) -> Self {
         Self {
             config,
-            routes: Arc::new(RwLock::new(HashMap::new())),
-            middlewares: Arc::new(Mutex::new(Vec::new())),
+            routes: Arc::new(RwLock::new(Vec::new())),
+            middleware: Arc::new(RwLock::new(Vec::new())),
         }
     }
-    #[inline]
-    pub fn use_middleware<MD: Middleware + 'static>(&mut self, middleware: MD ) {
-        self.middlewares.lock().unwrap().push(Box::new(middleware));
-    }
-    #[inline]
-    pub fn route<H>(&mut self, medhod: &str, path: &str, handler: H)
-    where
-        H: Fn(&mut Request) -> Response + 'static + Send + Sync,
-    {
-        let key = (medhod.to_string(), path.to_string());
-        self.routes
-            .write()
-            .unwrap()
-            .insert(key, CloneableFn::new(handler));
-    }
-    #[inline]
-    pub fn get<H>(&mut self, path: &str, handler: H)
-    where
-        H: Fn(&mut Request) -> Response + 'static + Send + Sync,
-    {
-        self.route("GET", path, handler);
-    }
-    #[inline]
-    pub fn post<H>(&mut self, path: &str, handler: H)
-    where
-        H: Fn(&mut Request) -> Response + 'static + Send + Sync,
-    {
-        self.route("POST", path, handler);
-    }
-    #[inline]
-    pub fn delete<H>(&mut self, path: &str, handler: H)
-    where
-        H: Fn(&mut Request) -> Response + 'static + Send + Sync,
-    {
-        self.route("DELETE", path, handler);
-    }
-    #[inline]
-    pub fn put<H>(&mut self, path: &str, handler: H)
-    where
-        H: Fn(&mut Request) -> Response + 'static + Send + Sync,
-    {
-        self.route("PUT", path, handler);
-    }
-    #[inline]
-    pub fn listen(&self, address: &str) {
-        let server = Arc::new(Server::http(address).expect("Failed to start server"));
-        println!("Listening on http://{}", address);
-        let pool = ThreadPool::new(self.config.threads);    
 
-        for mut rq in server.incoming_requests() {
-            let path = rq.url().to_string();
-            let method = rq.method().to_string();
+    /// Add a route to the application.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal [`RwLock`] protecting the routes is poisoned.
+    pub fn route<M: Middleware + 'static>(&mut self, method: Method, path: String, middleware: M) {
+        self.routes.write().unwrap().push(Route {
+            method,
+            path,
+            middleware: Box::new(middleware),
+        });
+    }
+
+    /// Add a global middleware to the application that will be applied to all routes.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal [`RwLock`] protecting the middleware is poisoned.
+    pub fn use_middleware(&mut self, middleware: impl Middleware + 'static) {
+        self.middleware.write().unwrap().push(Box::new(middleware));
+    }
+
+    route_methods!(
+        Get get
+        Post post
+        Put put
+        Delete delete
+        Patch patch
+        Head head
+        Options options
+    );
+
+    fn run_middleware(
+        request: &mut Request,
+        routes: &[Route],
+        middleware: &[Box<dyn Middleware>],
+    ) -> Response {
+        let mut response = Response::default();
+        for middleware in middleware {
+            middleware.handle(request, &mut response);
+        }
+        for Route {
+            method,
+            path,
+            middleware,
+        } in routes
+        {
+            if method != request.method() || *path != request.url() {
+                continue;
+            }
+            middleware.handle(request, &mut response);
+        }
+        response
+    }
+
+    /// Start the application and listen for incoming requests on the given address.
+    /// Blocks the current thread until the server is stopped.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the server fails to start or if the internal [`RwLock`]s protecting the routes
+    /// or middleware are poisoned.
+    pub fn listen(&self, address: impl ToSocketAddrs + Display) {
+        let server = Arc::new(Server::http(&address).expect("Failed to start server"));
+        eprintln!("Feather listening on http://{address}");
+        let pool = ThreadPool::new(self.config.threads);
+
+        for mut request in server.incoming_requests() {
             let routes = Arc::clone(&self.routes);
-            let middlewares = Arc::clone(&self.middlewares);
-            
+            let middleware = Arc::clone(&self.middleware);
             pool.execute(move || {
-                
-                // Handler'ı al
-                let handler = {
-                    let routes_guard = routes.read().unwrap();
-                    routes_guard.get(&(method.clone(), path.clone())).cloned()
-                };
-
-                // İlk final handler'ı oluştur
-                let mut next: Next = Arc::new(move |req: &mut Request| -> Response {
-                    if let Some(handler) = &handler {
-                        handler.call(req)
-                    } else {
-                        Response::ok("404 Not Found")
-                    }
-                });
-
-                // Middleware'leri ters sırada çalıştır
-                let middlewares_cloned: Vec<_> = {
-                    let middlewares_guard = middlewares.lock().unwrap();
-                    middlewares_guard.clone()
-                };
-
-                for middleware in middlewares_cloned.iter().rev() {
-                    let current_middleware = middleware.clone();
-                    let current_next = next.clone();
-
-                    next = Arc::new(move |req: &mut Request| -> Response {
-                        current_middleware.handle(req, current_next.clone())
-                    });
+                fn respond<R: Read>(
+                    response: tiny_http::Response<R>,
+                    request: Request,
+                    headers: HashMap<String, String>,
+                    status_code: u16,
+                ) -> io::Result<()> {
+                    request.respond(headers.into_iter().fold(
+                        response.with_status_code(status_code),
+                        |response, (key, value)| {
+                            response.with_header(
+                                Header::from_bytes(key.as_bytes(), value.as_bytes()).unwrap(),
+                            )
+                        },
+                    ))
                 }
-
-                // Zincirin ilk middleware'ini çağır
-                let response = next(&mut rq);
-                
-
-                // Yanıtı gönder
-                if response.is_file() {
-                    if let Err(e) = rq.respond(response.into_tiny_http_file()) {
-                        eprintln!("Response Failed To Send: {e}");
-                    }
+                let Response {
+                    status_code,
+                    body,
+                    file,
+                    headers,
+                } = Self::run_middleware(
+                    &mut request,
+                    &routes.read().unwrap(),
+                    &middleware.read().unwrap(),
+                );
+                let result = if let Some(file) = file {
+                    respond(
+                        tiny_http::Response::from_file(file),
+                        request,
+                        headers,
+                        status_code,
+                    )
+                } else if let Some(body) = body {
+                    respond(
+                        tiny_http::Response::from_string(body),
+                        request,
+                        headers,
+                        status_code,
+                    )
                 } else {
-                    if let Err(e) = rq.respond(response.into_tiny_http_cursor()) {
-                        eprintln!("Response Failed To Send: {e}");
-                    }
+                    Ok(())
+                };
+                if let Err(e) = result {
+                    eprintln!("Response failed to send: {e}");
                 }
             });
 

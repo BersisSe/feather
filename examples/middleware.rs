@@ -1,39 +1,48 @@
-//*Import Dependencies from Feather
-use feather::{App, AppConfig, Next, Request};
+// Import dependencies from Feather
 use feather::Response;
-//*Import the Needed Trait and Structs from the Middlewares Module
-use feather::middlewares::{Logger,Middleware};
+use feather::{App, AppConfig, Request};
+// Import the Middleware trait and some common middleware primitives
+use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
-fn main(){
-    //*Define an app
+// Implementors of the Middleware trait are middleware that can be used in a Feather app.
+#[derive(Clone)]
+struct Custom;
+
+// The Middleware trait defines a single method `handle`,
+// which can mutate the request and response objects, then return a `MiddlewareResult`.
+impl Middleware for Custom {
+    fn handle(&self, request: &mut Request, _response: &mut Response) -> MiddlewareResult {
+        // Do stuff here
+        println!("Now running some custom middleware (struct Custom)!");
+        println!("And there's a request with path: {:?}", request.url());
+        // and then continue to the next middleware in the chain
+        MiddlewareResult::Next
+    }
+}
+
+fn main() {
+    // Define an app
     let config = AppConfig { threads: 4 };
     let mut app = App::new(config);
 
-    //* Use a builtin Middleware
+    // Use the builtin Logger middleware for all routes
     app.use_middleware(Logger);
 
-    //* Define a route
-    app.get("/", |_req| {
-        Response::ok("Hello From Feather!!")
+    // Use the Custom middleware for all routes
+    app.use_middleware(Custom);
+
+    // Use another middleware defined by a function for all routes
+    app.use_middleware(|_request: &mut Request, _response: &mut Response| {
+        println!("Now running some custom middleware (closure)!");
+        MiddlewareResult::Next
     });
 
-    //* Listen on port 3000
+    // Define a route
+    app.get("/", |_request: &mut _, response: &mut _| {
+        *response = Response::ok("Hello from Feather!");
+        MiddlewareResult::Next
+    });
+
+    // Listen on port 3000
     app.listen("127.0.0.1:3000");
-}
-
-//* Creating Our Own Middleware
-// Middlewares are structs that implement the Middleware trait.
-#[derive(Clone)]
-struct MyMiddleman;
-
-// The Middleware trait defines a single method, handle, which takes a mutable reference to a Request and a Next function.
-impl Middleware for MyMiddleman {
-    fn handle(self:&Self, req: &mut Request, next: Next) -> Response {
-        // Do Stuff Here
-        print!("My Middleman is Here!!");
-        print!("And There is a Request From: {:?}", req.url());
-        // and then call the next middleware in the chain
-        next(req)
-    }
-    
 }

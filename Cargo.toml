@@ -26,7 +26,7 @@ reqwest = {version = "0.12.15", features = ["blocking"]}
 
 [lib]
 name = "feather"
-crate-type = ["lib"]    
+crate-type = ["lib"]
 path = "src/lib.rs"
 
 [features]
@@ -37,14 +37,8 @@ json = ["dep:serde","dep:serde_json"]
 
 [[example]]
 name = "app"
-path = "examples/feather_app.rs"
+path = "examples/app.rs"
 
 [[example]]
 name = "middleware"
 path = "examples/middleware.rs"
-
-
-
-
-
-

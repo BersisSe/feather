@@ -9,7 +9,25 @@ Feather is a lightweight, flexible, and highly extensible web framework for Rust
 - **Middleware Support**: Chain and compose middleware functions effortlessly.
 - **Route Handling**: Support for multiple HTTP methods (`GET`, `POST`, `PUT`, `DELETE`, etc.).
 - **Lightweight**: Built using Rust’s high-performance and memory-safe features.
-- **Thread-Safe**: Leverages Rust's Thread Safe Aspects.  
+- **Thread-Safe**: Leverages Rust's thread safe aspects.
+
+## Modules
+
+- `middleware`: Contains the middleware trait and related functionality
+- `response`: Defines the Response type used throughout the framework
+- `sync`: Contains the main application and configuration structs
+
+## Re-exports
+
+The following items are re-exported for convenience:
+
+- `AppConfig`: Configuration settings for the application
+- `Middleware`: Trait for defining middleware
+- `Response`: Type for HTTP responses
+- `Request`: Type for HTTP requests
+- `App`: The main application struct
+- `Next`: Type alias for the next middleware function
+
 ---
 
 ## Installation
@@ -25,76 +43,103 @@ feather = "0.1.1"
 
 Here's an example of building a simple web server with Feather:
 
-```rust
-//*Import Dependencies from Feather
-use feather::{App, AppConfig};
+```rust,no_run
+// Import dependencies from Feather
 use feather::Response;
-use feather::middlewares::Logger;
-//*Main Function No Async Here
-fn main() {
-    //*Create instance of AppConfig with 4 threads
-    let config = AppConfig { threads: 4 };
+use feather::middleware::{Logger, MiddlewareResult};
+use feather::{App, AppConfig};
 
-    //*Create a new instance of App
-    let mut app = App::new(config);
+// Main function - no async here!
+// Create instance of AppConfig with 4 threads
+let config = AppConfig { threads: 4 };
 
-    //*Define a route for the root path
-    app.get("/", |_req| {
-        Response::ok("Hello From Feather")
-    });    
-    //*Use the Logger middleware
-    app.use_middleware(Logger);
-    //*Listen on port 3000
-    app.listen("127.0.0.1:3000");
-}
+// Create a new instance of App
+let mut app = App::new(config);
 
+// Define a route for the root path
+app.get("/", |_request: &mut _, response: &mut _| {
+    *response = Response::ok("Hello from Feather!");
+    MiddlewareResult::Next
+});
+// Use the Logger middleware for all routes
+app.use_middleware(Logger);
+// Listen on port 3000
+app.listen("127.0.0.1:3000");
 ```
 
 ---
 
 ## Middleware
 
-Feather supports middleware for pre-processing requests and post-processing responses. Here's an example:
+Feather supports middleware for pre-processing requests and post-processing responses, and you can make your own too! Here's an example:
 
-```rust
-//* Import Dependencies from Feather
-use feather::{App, AppConfig};
+```rust,no_run
+// Import dependencies from Feather
 use feather::Response;
-use feather::middlewares::Logger;
-//* Main Function No Async Here
-fn main() {
-    //* Create instance of AppConfig with 4 threads
-    let config = AppConfig { threads: 4 };
+use feather::{App, AppConfig, Request};
+// Import the Middleware trait and some common middleware primitives
+use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
-    //* Create a new instance of App
-    let mut app = App::new(config);
+// Implementors of the Middleware trait are middleware that can be used in a Feather app.
+#[derive(Clone)]
+struct Custom;
 
-    //* Define a route for the root path
-    app.get("/", |_req| {
-        Response::ok("Hello From Feather")
-    });    
-    //* Use the Logger middleware
-    app.use_middleware(Logger);
-    //* Listen on port 3000
-    app.listen("127.0.0.1:3000");
+// The Middleware trait defines a single method `handle`,
+// which can mutate the request and response objects, then return a `MiddlewareResult`.
+impl Middleware for Custom {
+    fn handle(&self, request: &mut Request, _response: &mut Response) -> MiddlewareResult {
+        // Do stuff here
+        println!("Now running some custom middleware (struct Custom)!");
+        println!("And there's a request with path: {:?}", request.url());
+        // and then continue to the next middleware in the chain
+        MiddlewareResult::Next
+    }
 }
+
+// Define an app
+let config = AppConfig { threads: 4 };
+let mut app = App::new(config);
+
+// Use the builtin Logger middleware for all routes
+app.use_middleware(Logger);
+
+// Use the Custom middleware for all routes
+app.use_middleware(Custom);
+
+// Use another middleware defined by a function for all routes
+app.use_middleware(|_request: &mut Request, _response: &mut Response| {
+    println!("Now running some custom middleware (closure)!");
+    MiddlewareResult::Next
+});
+
+// Define a route
+app.get("/", |_request: &mut _, response: &mut _| {
+    *response = Response::ok("Hello from Feather!");
+    MiddlewareResult::Next
+});
+
+// Listen on port 3000
+app.listen("127.0.0.1:3000");
 ```
 
-Built-in middlewares includes:
-- `Logger`: Logs incoming Requests.
-- `Cors`: Add Cross-Origin Resource Sharing Headers to your Response.
+Built-in middleware includes:
 
+- `Logger`: Logs incoming requests.
+- `Cors`: Add cross-origin resource sharing headers to your response.
 
 ---
+
 ## Goals
-- Be the Simple & Beginner-Friendly Web Framework for Rust
-- Be Modular and Expandable By Design
-- Be Easy to Use and Learn
+
+- Be the simple & beginner-friendly web framework for Rust
+- Be modular and expandable by design
+- Be easy to use and learn
 
 ## Non-Goals
-- Be the most powerful/performant Web Framework
-- Use Complex and Low-level features
-- Be the most feature-rich Web Framework
+
+- Be the most powerful/performant web framework
+- Use complex and low-level features
+- Be the most feature-rich web framework
 
 ---
 
@@ -121,4 +166,3 @@ Feather is open-source software, licensed under the [MIT License](LICENSE).
 Feather is inspired by the simplicity of Express.js and aims to bring similar productivity to the Rust ecosystem. Special thanks to the Rust community for their contributions to building robust tools and libraries.
 
 ---
-
