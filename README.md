@@ -45,26 +45,27 @@ Here's an example of building a simple web server with Feather:
 
 ```rust,no_run
 // Import dependencies from Feather
-use feather::Response;
-use feather::middleware::{Logger, MiddlewareResult};
+use feather::HttpResponse;
+use feather::middleware::{Logger, MiddlewareResult, Cors};
 use feather::{App, AppConfig};
-
 // Main function - no async here!
-// Create instance of AppConfig with 4 threads
-let config = AppConfig { threads: 4 };
+fn main() {
+    // Create instance of AppConfig with 4 threads
+    let config = AppConfig { threads: 32 };
 
-// Create a new instance of App
-let mut app = App::new(config);
-
-// Define a route for the root path
-app.get("/", |_request: &mut _, response: &mut _| {
-    *response = Response::ok("Hello from Feather!");
-    MiddlewareResult::Next
-});
-// Use the Logger middleware for all routes
-app.use_middleware(Logger);
-// Listen on port 3000
-app.listen("127.0.0.1:3000");
+    // Create a new instance of App
+    let mut app = App::new(config);
+    app.use_middleware(Cors::default());
+    // Define a route for the root path
+    app.get("/", |_request: &mut _, response: &mut _| {
+        *response = HttpResponse::ok("Hello from Feather!");
+        MiddlewareResult::Next
+    });
+    // Use the Logger middleware for all routes
+    app.use_middleware(Logger);
+    // Listen on port 3000
+    app.listen("127.0.0.1:3000");
+}
 ```
 
 ---
@@ -75,8 +76,8 @@ Feather supports middleware for pre-processing requests and post-processing resp
 
 ```rust,no_run
 // Import dependencies from Feather
-use feather::Response;
-use feather::{App, AppConfig, Request};
+
+use feather::{App, AppConfig, HttpRequest,HttpResponse};
 // Import the Middleware trait and some common middleware primitives
 use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
@@ -87,39 +88,41 @@ struct Custom;
 // The Middleware trait defines a single method `handle`,
 // which can mutate the request and response objects, then return a `MiddlewareResult`.
 impl Middleware for Custom {
-    fn handle(&self, request: &mut Request, _response: &mut Response) -> MiddlewareResult {
+    fn handle(&self, request: &mut HttpRequest, _response: &mut HttpResponse) -> MiddlewareResult {
         // Do stuff here
         println!("Now running some custom middleware (struct Custom)!");
-        println!("And there's a request with path: {:?}", request.url());
+        println!("And there's a request with path: {:?}", request.uri);
         // and then continue to the next middleware in the chain
         MiddlewareResult::Next
     }
 }
 
-// Define an app
-let config = AppConfig { threads: 4 };
-let mut app = App::new(config);
+fn main() {
+    // Define an app
+    let config = AppConfig { threads: 4 };
+    let mut app = App::new(config);
 
-// Use the builtin Logger middleware for all routes
-app.use_middleware(Logger);
+    // Use the builtin Logger middleware for all routes
+    app.use_middleware(Logger);
 
-// Use the Custom middleware for all routes
-app.use_middleware(Custom);
+    // Use the Custom middleware for all routes
+    app.use_middleware(Custom);
 
-// Use another middleware defined by a function for all routes
-app.use_middleware(|_request: &mut Request, _response: &mut Response| {
-    println!("Now running some custom middleware (closure)!");
-    MiddlewareResult::Next
-});
+    // Use another middleware defined by a function for all routes
+    app.use_middleware(|_request: &mut HttpRequest, _response: &mut HttpResponse| {
+        println!("Now running some custom middleware (closure)!");
+        MiddlewareResult::Next
+    });
 
-// Define a route
-app.get("/", |_request: &mut _, response: &mut _| {
-    *response = Response::ok("Hello from Feather!");
-    MiddlewareResult::Next
-});
+    // Define a route
+    app.get("/", |_request: &mut _, response: &mut _| {
+        *response = HttpResponse::ok("Hello from Feather!");
+        MiddlewareResult::Next
+    });
 
-// Listen on port 3000
-app.listen("127.0.0.1:3000");
+    // Listen on port 3000
+    app.listen("127.0.0.1:3000");
+}
 ```
 
 Built-in middleware includes:
@@ -131,14 +134,13 @@ Built-in middleware includes:
 
 ## Goals
 
-- Be the simple & beginner-friendly web framework for Rust
+- Be the most simple & beginner-friendly web framework for Rust
 - Be modular and expandable by design
 - Be easy to use and learn
 
 ## Non-Goals
 
 - Be the most powerful/performant web framework
-- Use complex and low-level features
 - Be the most feature-rich web framework
 
 ---
@@ -166,3 +168,5 @@ Feather is open-source software, licensed under the [MIT License](LICENSE).
 Feather is inspired by the simplicity of Express.js and aims to bring similar productivity to the Rust ecosystem. Special thanks to the Rust community for their contributions to building robust tools and libraries.
 
 ---
+## Known Issues
+- The Logger Middleware decreases performance

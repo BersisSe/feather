@@ -6,7 +6,7 @@ This document outlines the planned features and improvements for the Feather fra
 - [ ] Implement advanced routing features (e.g., route parameters, query parameters)
 - [ ] Add support for static file serving
 - [ ] Improve error handling and logging
-- [ ] Add A key-value store for session management(Kinda like svelte stores)
+- [ ] Add A Writable/Readable stores for session management(Kinda like svelte stores)
 - [ ] Add support for WebSockets
 - [ ] Add Templating support(tera, handlebars, etc)
 

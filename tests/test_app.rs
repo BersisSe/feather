@@ -1,4 +1,4 @@
-use feather::Response;
+use feather::HttpResponse as Response;
 use feather::middleware::MiddlewareResult;
 use feather::{App, AppConfig};
 use reqwest::blocking::get;

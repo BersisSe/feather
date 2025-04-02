@@ -1,6 +1,6 @@
 // Import dependencies from Feather
-use feather::Response;
-use feather::{App, AppConfig, Request};
+
+use feather::{App, AppConfig, HttpRequest,HttpResponse};
 // Import the Middleware trait and some common middleware primitives
 use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
@@ -11,10 +11,10 @@ struct Custom;
 // The Middleware trait defines a single method `handle`,
 // which can mutate the request and response objects, then return a `MiddlewareResult`.
 impl Middleware for Custom {
-    fn handle(&self, request: &mut Request, _response: &mut Response) -> MiddlewareResult {
+    fn handle(&self, request: &mut HttpRequest, _response: &mut HttpResponse) -> MiddlewareResult {
         // Do stuff here
         println!("Now running some custom middleware (struct Custom)!");
-        println!("And there's a request with path: {:?}", request.url());
+        println!("And there's a request with path: {:?}", request.uri);
         // and then continue to the next middleware in the chain
         MiddlewareResult::Next
     }
@@ -32,14 +32,14 @@ fn main() {
     app.use_middleware(Custom);
 
     // Use another middleware defined by a function for all routes
-    app.use_middleware(|_request: &mut Request, _response: &mut Response| {
+    app.use_middleware(|_request: &mut HttpRequest, _response: &mut HttpResponse| {
         println!("Now running some custom middleware (closure)!");
         MiddlewareResult::Next
     });
 
     // Define a route
     app.get("/", |_request: &mut _, response: &mut _| {
-        *response = Response::ok("Hello from Feather!");
+        *response = HttpResponse::ok("Hello from Feather!");
         MiddlewareResult::Next
     });
 

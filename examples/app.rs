@@ -1,18 +1,18 @@
 // Import dependencies from Feather
-use feather::Response;
-use feather::middleware::{Logger, MiddlewareResult};
+use feather::HttpResponse;
+use feather::middleware::{Logger, MiddlewareResult, Cors};
 use feather::{App, AppConfig};
 // Main function - no async here!
 fn main() {
     // Create instance of AppConfig with 4 threads
-    let config = AppConfig { threads: 4 };
+    let config = AppConfig { threads: 32 };
 
     // Create a new instance of App
     let mut app = App::new(config);
-
+    app.use_middleware(Cors::default());
     // Define a route for the root path
     app.get("/", |_request: &mut _, response: &mut _| {
-        *response = Response::ok("Hello from Feather!");
+        *response = HttpResponse::ok("Hello from Feather!");
         MiddlewareResult::Next
     });
     // Use the Logger middleware for all routes

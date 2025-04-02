@@ -1,7 +1,6 @@
-use crate::response::Response;
 use dyn_clone::DynClone;
-use tiny_http::Request;
-
+use feather_runtime::http::HttpRequest as Request;
+use feather_runtime::http::HttpResponse as Response;
 /// Common trait for all middleware types. Implemented automatically for functions fitting
 /// the `(request, response) -> result` signature.
 pub trait Middleware: Send + Sync + DynClone {
@@ -24,7 +23,7 @@ pub struct Logger;
 
 impl Middleware for Logger {
     fn handle(&self, request: &mut Request, _: &mut Response) -> MiddlewareResult {
-        println!("Request: {request:?}");
+        println!("Request: {request}");
         MiddlewareResult::Next
     }
 }
@@ -44,7 +43,7 @@ impl Cors {
 
 impl Middleware for Cors {
     fn handle(&self, _: &mut Request, response: &mut Response) -> MiddlewareResult {
-        response.with_header(
+        response.add_header(
             "Access-Control-Allow-Origin",
             self.0.as_deref().unwrap_or("*"),
         );
