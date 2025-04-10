@@ -20,7 +20,6 @@ thiserror = "2.0.12"
 rayon = "*"
 feather-runtime ={ path = "./feather-runtime" }
 parking_lot = "0.12.3"
-html-to-string-macro = "0.2.5"
 
 [dev-dependencies]
 reqwest = {version = "0.12.15", features = ["blocking"]}

@@ -131,7 +131,7 @@ impl App {
     /// or middleware are poisoned.
     pub fn listen(&self, address: impl ToSocketAddrs + Display) {
         let server = Server::new(address.to_string(), self.config.threads);
-        println!("{} : {}", "Feather Listening on".blue(),address.to_string().green());
+        println!("{} : {}", "Feather Listening on".blue(),format!("http://{address}").green());
         let routes = self.routes.read().clone(); // Clone once
         let middleware = self.middleware.read().clone(); // Clone once
         server.incoming().for_each(move |mut req| {

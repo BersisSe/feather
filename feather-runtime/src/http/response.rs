@@ -98,6 +98,16 @@ impl HttpResponse {
             self.body.as_ref().unwrap().len().to_string().parse().unwrap()
         );
     }
+    pub fn send_html(&mut self, data: impl Into<String>) {
+        let body = data.into();
+        self.body = Some(Bytes::from(body));
+        self.headers.insert("Server", "Feather-Runtime".parse().unwrap());
+        self.headers.insert("Content-Type", "text/html".parse().unwrap());
+        self.headers.insert(
+            "Content-Length",
+            self.body.as_ref().unwrap().len().to_string().parse().unwrap()
+        );
+    }
     pub fn send_json<T: Serialize>(&mut self, data: T) {
         match serde_json::to_string(&data) {
             Ok(json) => {
