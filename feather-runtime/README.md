@@ -18,7 +18,7 @@ Feather Runtime ensures a modern, efficient, and reliable HTTP server experience
 
 ### For Contributors
 
-If you're contributing to Feather but don't want to mess with low-level server internals, you can mostly ignore this subcrate. Feather Runtime is designed to handle the core HTTP processing while Feather itself provides higher-level abstractions. If you have a feature request or a problem open a Issue for it 
+If you're contributing to Feather but don't want to mess with low-level server internals, you can mostly ignore this subcrate. Feather Runtime is designed to handle the core HTTP processing while Feather itself provides higher-level abstractions. If you have a feature request or a problem open a [Issue](https://github.com/BersisSe/feather/issues) for it 
 
 ---
 

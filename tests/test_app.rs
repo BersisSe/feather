@@ -1,16 +1,16 @@
-use feather::HttpResponse as Response;
 use feather::middleware::MiddlewareResult;
 use feather::{App, AppConfig};
+use feather::{Request, Response};
 use reqwest::blocking::get;
 use std::thread;
 
 #[test]
 fn test_app() {
     let config = AppConfig { threads: 4 };
-    let mut app = App::new(config);
+    let mut app = App::with_config(config);
 
-    app.get("/", |_request: &mut _, response: &mut _| {
-        *response = Response::ok("Hello from Feather!");
+    app.get("/", |_request: &mut Request, response: &mut Response| {
+        response.send_text("Hello from Feather!");
         MiddlewareResult::Next
     });
     thread::spawn(move || {

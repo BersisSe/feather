@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 pub mod server;
 pub mod http;
 

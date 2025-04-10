@@ -1,6 +1,7 @@
 use httparse;
 use http::{ HeaderMap, Method, Uri, Version };
 use std::{fmt, str::FromStr };
+use bytes::Bytes;
 
 #[derive(Debug,Clone)]
 pub struct HttpRequest {
@@ -8,7 +9,7 @@ pub struct HttpRequest {
     pub uri: Uri,
     pub version: Version,
     pub headers: HeaderMap,
-    pub body: String,
+    pub body: Bytes, // Changed from String to Bytes
 }
 
 impl HttpRequest {
@@ -31,7 +32,7 @@ impl HttpRequest {
             header_map.insert(name, value);
         };
         let body_start = raw.windows(4).position(|w| w == b"\r\n\r\n").map(|pos| pos + 4).unwrap_or(raw.len());
-        let body = String::from_utf8(raw[body_start..].to_vec()).unwrap();
+        let body = Bytes::copy_from_slice(&raw[body_start..]); // Changed from String to Bytes
 
         Ok(Self {
             method,
@@ -45,6 +46,8 @@ impl HttpRequest {
 
 impl fmt::Display for HttpRequest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} for {}: Body Data: {} ",self.method, self.uri,self.body.to_string())
+        write!(f, "{} for {}: Body Data: {} ",self.method, self.uri,String::from_utf8_lossy(&self.body)) // Changed from self.body.to_string() to String::from_utf8_lossy(&self.body)
     }
 }
+
+

@@ -45,20 +45,18 @@ Here's an example of building a simple web server with Feather:
 
 ```rust,no_run
 // Import dependencies from Feather
-use feather::HttpResponse;
-use feather::middleware::{Logger, MiddlewareResult, Cors};
-use feather::{App, AppConfig};
+use feather::{App,MiddlewareResult};
+use feather::middleware::Logger;
+use feather::{Request, Response};
+
 // Main function - no async here!
 fn main() {
-    // Create instance of AppConfig with 4 threads
-    let config = AppConfig { threads: 32 };
-
     // Create a new instance of App
-    let mut app = App::new(config);
-    app.use_middleware(Cors::default());
+    let mut app = App::new();
+    
     // Define a route for the root path
-    app.get("/", |_request: &mut _, response: &mut _| {
-        *response = HttpResponse::ok("Hello from Feather!");
+    app.get("/", |_request: &mut Request, response: &mut Response| {
+        response.send_text("Hello, world!");
         MiddlewareResult::Next
     });
     // Use the Logger middleware for all routes
@@ -76,8 +74,7 @@ Feather supports middleware for pre-processing requests and post-processing resp
 
 ```rust,no_run
 // Import dependencies from Feather
-
-use feather::{App, AppConfig, HttpRequest,HttpResponse};
+use feather::{App, AppConfig, Request, Response};
 // Import the Middleware trait and some common middleware primitives
 use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
@@ -88,7 +85,7 @@ struct Custom;
 // The Middleware trait defines a single method `handle`,
 // which can mutate the request and response objects, then return a `MiddlewareResult`.
 impl Middleware for Custom {
-    fn handle(&self, request: &mut HttpRequest, _response: &mut HttpResponse) -> MiddlewareResult {
+    fn handle(&self, request: &mut Request, _response: &mut Response) -> MiddlewareResult {
         // Do stuff here
         println!("Now running some custom middleware (struct Custom)!");
         println!("And there's a request with path: {:?}", request.uri);
@@ -98,9 +95,9 @@ impl Middleware for Custom {
 }
 
 fn main() {
-    // Define an app
-    let config = AppConfig { threads: 4 };
-    let mut app = App::new(config);
+    // Define an app with config this time
+    let config = AppConfig { threads: 8 }; // Curently Config only sets the number of threads
+    let mut app = App::with_config(config);
 
     // Use the builtin Logger middleware for all routes
     app.use_middleware(Logger);
@@ -109,14 +106,14 @@ fn main() {
     app.use_middleware(Custom);
 
     // Use another middleware defined by a function for all routes
-    app.use_middleware(|_request: &mut HttpRequest, _response: &mut HttpResponse| {
+    app.use_middleware(|_request: &mut Request, _response: &mut Response| {
         println!("Now running some custom middleware (closure)!");
         MiddlewareResult::Next
     });
 
     // Define a route
-    app.get("/", |_request: &mut _, response: &mut _| {
-        *response = HttpResponse::ok("Hello from Feather!");
+    app.get("/", |_request: &mut Request, response: &mut Response| {
+        response.send_text("Hello, world!");
         MiddlewareResult::Next
     });
 

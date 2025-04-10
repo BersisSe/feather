@@ -1,15 +1,10 @@
 use crate::middleware::Middleware;
-
-use std::{
-    fmt::Display,
-    net::ToSocketAddrs,
-    sync::Arc,
-};
+use colored::Colorize;
 use parking_lot::RwLock;
-
-use feather_runtime::{http::HttpRequest as Request, server::tcp::Server};
-use feather_runtime::http::HttpResponse as Response;
+use std::{fmt::Display, net::ToSocketAddrs, sync::Arc};
 use feather_runtime::Method;
+use feather_runtime::http::HttpResponse as Response;
+use feather_runtime::{http::HttpRequest as Request, server::tcp::Server};
 /// Configuration settings for the application.
 ///
 /// This struct is used to configure various aspects of the application,
@@ -42,6 +37,7 @@ pub struct App {
 macro_rules! route_methods {
     ($($method:ident $name:ident)+) => {
         $(
+            /// Every Route takes a handler and every handler Returns a `MiddlewareResult` to control the flow of your application
             pub fn $name<M: Middleware + 'static>(&mut self, path: impl Into<String>, middleware: M)
             {
                 self.route(Method::$method, path.into(), middleware);
@@ -51,18 +47,28 @@ macro_rules! route_methods {
 }
 
 impl App {
-    #[must_use]
-    pub fn new(config: AppConfig) -> Self {
+    /// Create a new instance of the application with default configuration.
+    #[must_use = "Does nothing if you don't use the `listen` method"]
+    pub fn new() -> Self {
+        Self {
+            config: AppConfig { threads: 6 },
+            routes: Arc::new(RwLock::new(Vec::new())),
+            middleware: Arc::new(RwLock::new(Vec::new())),
+        }
+    }
+    /// Create a new instance of the application with the given configuration.
+    pub fn with_config(config: AppConfig) -> Self {
         Self {
             config,
             routes: Arc::new(RwLock::new(Vec::new())),
             middleware: Arc::new(RwLock::new(Vec::new())),
-            
         }
     }
 
     /// Add a route to the application.
-    ///
+    /// 
+    /// Every Route Returns A MiddlewareResult to control the flow of your application.
+    /// 
     /// # Panics
     ///
     /// Panics if the internal [`RwLock`] protecting the routes is poisoned.
@@ -94,13 +100,13 @@ impl App {
     );
 
     fn run_middleware(
-        request: &mut Request,
+        mut request: &mut Request,
         routes: &[Route],
         middleware: &[Box<dyn Middleware>],
     ) -> Response {
         let mut response = Response::default();
         for middleware in middleware {
-            middleware.handle(request, &mut response);
+            middleware.handle(&mut request, &mut response);
         }
         for Route {
             method,
@@ -124,16 +130,13 @@ impl App {
     /// Panics if the server fails to start or if the internal [`RwLock`]s protecting the routes
     /// or middleware are poisoned.
     pub fn listen(&self, address: impl ToSocketAddrs + Display) {
-        let server = Server::new(address.to_string(),self.config.threads);
-        eprintln!("Feather listening on http://{address}");
+        let server = Server::new(address.to_string(), self.config.threads);
+        println!("{} : {}", "Feather Listening on".blue(),address.to_string().green());
         let routes = self.routes.read().clone(); // Clone once
         let middleware = self.middleware.read().clone(); // Clone once
-        server.incoming().for_each(move |mut req|{
+        server.incoming().for_each(move |mut req| {
             let response = Self::run_middleware(&mut req, &routes, &middleware);
             return response;
-        });
-    
-        
-        
+        }).unwrap();
     }
 }
