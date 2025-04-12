@@ -261,6 +261,7 @@ dependencies = [
  "rusty_pool",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

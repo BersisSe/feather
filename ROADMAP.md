@@ -7,7 +7,7 @@ This document outlines the planned features and improvements for the Feather fra
 - [ ] Improve Performance: Optimize the framework for better performance and lower latency
 - [ ] Implement Caching: Add support for caching responses to improve performance
 - [ ] Improve error handling and logging
-- [ ] Add A Writable/Readable stores for session management(Kinda like svelte stores)
+- [ ] Implement A State Managment Solution
 - [ ] Add support for WebSockets
 
 

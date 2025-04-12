@@ -2,5 +2,6 @@
 
 pub mod server;
 pub mod http;
+mod utils;
 
-pub use ::http::{Method,HeaderMap,HeaderName,HeaderValue,Uri};
+pub use::http::{Method,HeaderMap,HeaderName,HeaderValue,Uri};

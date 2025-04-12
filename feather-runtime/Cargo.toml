@@ -15,6 +15,7 @@ bytes ={ version = "*"}
 serde = { version = "1.0"}
 serde_json = { version = "1.0"}
 ctrlc = "*"
+thiserror= "*"
 [lib]
 crate-type = ["lib"]
 name = "feather_runtime"

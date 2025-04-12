@@ -5,36 +5,52 @@ use std::time::Duration;
 use rusty_pool::ThreadPool;
 use crate::http::{ HttpRequest, HttpResponse };
 
+#[derive(Clone)]
+pub struct ServerConfig{
+    pub address: String,
+    pub core_size: usize,
+    pub max_size: usize,
+    pub idle_timeout: Duration,
+    
+}
+
 pub struct Server {
     listener: TcpListener,
-    num_threads: usize,
+    config: ServerConfig,
 }
 
 impl Server {
     /// Creates a new `Server` instance.
-    pub fn new(address: String, num_threads: usize) -> Self {
-        let listener = TcpListener::bind(address).expect("Failed to bind to address");
-
-        Self { listener, num_threads }
+    pub fn new(config: ServerConfig) -> Self {
+        let listener = TcpListener::bind(&config.address).expect("Failed to bind to address");
+        
+        Server {
+            listener,
+            config,
+        }
     }
 
     pub fn incoming(self) -> IncomingRequests {
-        let num_threads = self.num_threads;
-        IncomingRequests { server: Arc::new(self), num_threads }
+        let config = self.config.clone();
+        IncomingRequests { server: Arc::new(self), config }
     }
 }
 
 /// A struct to encapsulate incoming requests to the server.
-pub struct IncomingRequests {
+pub struct IncomingRequests{
     server: Arc<Server>,
-    num_threads: usize,
+    config: ServerConfig
 }
 
 impl IncomingRequests {
     pub fn for_each<F>(self, handle: F) -> io::Result<()>
         where F: FnMut(HttpRequest) -> HttpResponse + Send + Clone + 'static
     {
-        let thread_pool = ThreadPool::new(2, self.num_threads, Duration::from_millis(100));
+        let thread_pool = ThreadPool::new(
+            self.config.core_size,
+            self.config.max_size,
+            self.config.idle_timeout,
+        );
         let listener = self.server.listener.try_clone()?; // Keep the listener in blocking mode
         loop{
             match listener.accept() {

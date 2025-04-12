@@ -1,5 +1,5 @@
 // Import dependencies from Feather
-use feather::{App,MiddlewareResult};
+use feather::{App, MiddlewareResult};
 use feather::middleware::Logger;
 use feather::{Request, Response};
 

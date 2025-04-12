@@ -1,5 +1,6 @@
 use crate::middleware::Middleware;
 use colored::Colorize;
+use feather_runtime::server::tcp::ServerConfig;
 use parking_lot::RwLock;
 use std::{fmt::Display, net::ToSocketAddrs, sync::Arc};
 use feather_runtime::Method;
@@ -130,7 +131,13 @@ impl App {
     /// Panics if the server fails to start or if the internal [`RwLock`]s protecting the routes
     /// or middleware are poisoned.
     pub fn listen(&self, address: impl ToSocketAddrs + Display) {
-        let server = Server::new(address.to_string(), self.config.threads);
+        let server_conf = ServerConfig{
+            address: address.to_string(),
+            core_size: self.config.threads,
+            max_size: self.config.threads+ 6,
+            idle_timeout: std::time::Duration::from_secs(5),
+        };
+        let server = Server::new(server_conf);
         println!("{} : {}", "Feather Listening on".blue(),format!("http://{address}").green());
         let routes = self.routes.read().clone(); // Clone once
         let middleware = self.middleware.read().clone(); // Clone once
