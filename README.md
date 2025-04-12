@@ -1,6 +1,7 @@
 # Feather
 
 Feather is a lightweight, flexible, and highly extensible web framework for Rust, inspired by the simplicity and modularity of Express.js.
+Feather aim's to be simple and minimal alternative to other web frameworks such as actix or axum
 
 ---
 
