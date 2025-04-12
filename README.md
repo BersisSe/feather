@@ -1,7 +1,7 @@
 # Feather
 
 Feather is a lightweight, flexible, and highly extensible web framework for Rust, inspired by the simplicity and modularity of Express.js.
-Feather aim's to be simple and minimal alternative to other web frameworks such as actix or axum
+Feather aim's to be simple and minimal alternative to other web frameworks such as `Actix` or `Axum`
 
 ---
 
@@ -17,19 +17,6 @@ Feather aim's to be simple and minimal alternative to other web frameworks such 
 - `middleware`: Contains the middleware trait and related functionality
 - `response`: Defines the Response type used throughout the framework
 - `sync`: Contains the main application and configuration structs
-
-## Re-exports
-
-The following items are re-exported for convenience:
-
-- `AppConfig`: Configuration settings for the application
-- `Middleware`: Trait for defining middleware
-- `Response`: Type for HTTP responses
-- `Request`: Type for HTTP requests
-- `App`: The main application struct
-- `Next`: Type alias for the next middleware function
-
----
 
 ## Installation
 
@@ -122,7 +109,6 @@ fn main() {
     app.listen("127.0.0.1:3000");
 }
 ```
-
 Built-in middleware includes:
 
 - `Logger`: Logs incoming requests.
@@ -135,13 +121,6 @@ Built-in middleware includes:
 - Be the most simple & beginner-friendly web framework for Rust
 - Be modular and expandable by design
 - Be easy to use and learn
-
-## Non-Goals
-
-- Be the most powerful/performant web framework
-- Be the most feature-rich web framework
-
----
 
 ## Contributing
 
