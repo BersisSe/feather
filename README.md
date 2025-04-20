@@ -112,7 +112,7 @@ Built-in middleware includes:
 
 - `Logger`: Logs incoming requests.
 - `Cors`: Add cross-origin resource sharing headers to your response.
-
+- `ServeStatic`: Serves Static Files in the given Directory 
 ---
 
 ## Goals
