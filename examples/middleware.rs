@@ -1,6 +1,5 @@
 // Import dependencies from Feather
-use feather::Response;
-use feather::{App, AppConfig, Request};
+use feather::{App, Request, Response};
 // Import the Middleware trait and some common middleware primitives
 use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
@@ -14,16 +13,15 @@ impl Middleware for Custom {
     fn handle(&self, request: &mut Request, _response: &mut Response) -> MiddlewareResult {
         // Do stuff here
         println!("Now running some custom middleware (struct Custom)!");
-        println!("And there's a request with path: {:?}", request.url());
+        println!("And there's a request with path: {:?}", request.uri);
         // and then continue to the next middleware in the chain
         MiddlewareResult::Next
     }
 }
 
 fn main() {
-    // Define an app
-    let config = AppConfig { threads: 4 };
-    let mut app = App::new(config);
+    // Create a new instance of App
+    let mut app = App::new();
 
     // Use the builtin Logger middleware for all routes
     app.use_middleware(Logger);
@@ -38,8 +36,8 @@ fn main() {
     });
 
     // Define a route
-    app.get("/", |_request: &mut _, response: &mut _| {
-        *response = Response::ok("Hello from Feather!");
+    app.get("/", |_request: &mut Request, response: &mut Response| {
+        response.send_text("Hello, world!");
         MiddlewareResult::Next
     });
 

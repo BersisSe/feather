@@ -1,25 +1,22 @@
 [package]
 name = "feather"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 repository = "https://github.com/BersisSe/feather"
-description = "Feather: A minimal HTTP framework for Rust "
+description = "Feather: A minimal HTTP framework for Rust"
 authors = ["Bersis Sevimli"]
 license = "MIT"
 readme = "README.md"
 keywords = ["http","web","framework","minimal","rust"]
 categories = ["web-programming","network-programming"]
 
-
 [dependencies]
 colored = "3.0.0"
-ctrlc = "3.4.5"
 dyn-clone = "1.0.19"
 serde = { version = "1.0.217", features = ["derive"] , optional = true}
 serde_json = {version = "1.0.135", optional = true}
-thiserror = "2.0.12"
-threadpool = "1.8.1"
-tiny_http = "0.12.0"
+feather-runtime ={ path = "./feather-runtime" }
+
 
 [dev-dependencies]
 reqwest = {version = "0.12.15", features = ["blocking"]}
@@ -31,8 +28,6 @@ path = "src/lib.rs"
 
 [features]
 default = ["json"]
-
-tera = []
 json = ["dep:serde","dep:serde_json"]
 
 [[example]]
