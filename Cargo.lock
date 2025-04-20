@@ -263,14 +263,14 @@ version = "0.2.0"
 dependencies = [
  "colored",
  "dyn-clone",
- "feather-runtime",
+ "feather_runtime",
  "reqwest",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "feather-runtime"
+name = "feather_runtime"
 version = "0.1.0"
 dependencies = [
  "bytes",
