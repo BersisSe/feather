@@ -24,7 +24,7 @@ To get started with Feather, add it as a dependency in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "0.1.1"
+feather = "0.2.0"
 ```
 
 ## Quick Start
