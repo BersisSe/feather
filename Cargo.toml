@@ -15,7 +15,7 @@ colored = "3.0.0"
 dyn-clone = "1.0.19"
 serde = { version = "1.0.217", features = ["derive"] , optional = true}
 serde_json = {version = "1.0.135", optional = true}
-feather_runtime ={ path = "./feather-runtime",version = "*" }
+feather-runtime ={ path = "./feather-runtime",version = "*" }
 
 
 [dev-dependencies]
