@@ -10,13 +10,12 @@ license = "MIT"
 httparse = "1.10.1"
 http = "1.3.1"
 crossbeam = "0.8.4"
-bytes ={ version = "*"}
-serde = { version = "1.0"}
-serde_json = { version = "1.0"}
-ctrlc = "*"
-thiserror= "*"
+bytes ={ version = "1.10.1"}
+serde = { version = "1.0.219"}
+serde_json = { version = "1.0.140"}
+thiserror= "2.0.12"
 chrono = "0.4.40"
-log = "*"
+log = "0.4.27"
 
 [dev-dependencies]
 env_logger = "0.11.8"
