@@ -6,7 +6,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Feather[Runtime Second Update]] - 2025-04-04
+## Feather[Runtime Third Update] - 2025-04-20
+
+
+### Added
+**Feather Framework**
+- New Json methods for the `Request` object to make it easier to get the json body
+- Doc comments for almost all methods and structs
+**Feather Runtime**
+- The internals has been rewitten to be more readable and understandable
+- Added TaskPool to manage concurrent tasks(Essentially Concurrent Requests)
+- Added a new MessagesQueue to manage the requests efficiently
+- Added a new Connection Managment system to manage the connections efficiently
+- Added Proper error handling and logging
+
+
+### Removed
+**Feather Framework**
+- The `AppConfig` struct has been removed.
+- The `App` struct's `with_config` method has been removed.
+
+**Feather Runtime**
+- Rusty-pool Dependency has been removed
+
+
+### Fixed
+**Feather Framework**
+- Improved the General Performance of the framework(More on that topic in the runtime section).
+
+**Feather Runtime**
+- Fixed the bug if the client shutsdown the connection server will not send a response back
+- Fixed the bug server would not shutdown properly
+- Improved the performance of the Runtime by changing the internals to be more efficient [Details](feather-runtime/Performance.md)
+
+
+
+
+
+
+
+
+## Feather[Runtime Second Update] - 2025-04-07
 
 ### Added
 - A new `ServeStatic` middleware to serve static files from a directory

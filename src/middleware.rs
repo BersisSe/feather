@@ -2,7 +2,6 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-
 use dyn_clone::DynClone;
 use feather_runtime::http::HttpRequest as Request;
 use feather_runtime::http::HttpResponse as Response;

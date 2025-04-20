@@ -1,5 +1,5 @@
 // Import dependencies from Feather
-use feather::{App, AppConfig, Request, Response};
+use feather::{App, Request, Response};
 // Import the Middleware trait and some common middleware primitives
 use feather::middleware::{Logger, Middleware, MiddlewareResult};
 
@@ -20,9 +20,8 @@ impl Middleware for Custom {
 }
 
 fn main() {
-    // Define an app with config this time
-    let config = AppConfig { threads: 8 }; // Curently Config only sets the number of threads
-    let mut app = App::with_config(config);
+    // Create a new instance of App
+    let mut app = App::new();
 
     // Use the builtin Logger middleware for all routes
     app.use_middleware(Logger);

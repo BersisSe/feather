@@ -1,46 +1,32 @@
 use crate::middleware::Middleware;
 use colored::Colorize;
-use feather_runtime::server::tcp::ServerConfig;
-use parking_lot::RwLock;
-use std::{fmt::Display, net::ToSocketAddrs, sync::Arc};
+use feather_runtime::server::server::ServerConfig;
+use std::{fmt::Display, net::ToSocketAddrs};
 use feather_runtime::Method;
 use feather_runtime::http::HttpResponse as Response;
-use feather_runtime::{http::HttpRequest as Request, server::tcp::Server};
-/// Configuration settings for the application.
-///
-/// This struct is used to configure various aspects of the application,
-/// such as the number of threads to be used in the thread pool.
-///
-/// # Fields
-///
-/// * `threads` - The number of threads to be used by the application's thread pool.
-#[derive(Debug, Clone)]
-pub struct AppConfig {
-    /// The number of threads to be used by the application's thread pool.
-    pub threads: usize,
-}
+use feather_runtime::{http::HttpRequest as Request, server::server::Server};
+use std::borrow::Cow;
+
 
 /// A route in the application.
 #[derive(Clone)]
 pub struct Route {
     method: Method,
-    path: String,
+    path: Cow<'static, str>,
     middleware: Box<dyn Middleware>,
 }
 
 /// A Feather application.
 pub struct App {
-    config: AppConfig,
-    routes: Arc<RwLock<Vec<Route>>>,
-    middleware: Arc<RwLock<Vec<Box<dyn Middleware>>>>,
+    routes: Vec<Route>,
+    middleware: Vec<Box<dyn Middleware>>,
 }
 
 macro_rules! route_methods {
     ($($method:ident $name:ident)+) => {
         $(
-            /// Every Route takes a handler and every handler Returns a `MiddlewareResult` to control the flow of your application
-            pub fn $name<M: Middleware + 'static>(&mut self, path: impl Into<String>, middleware: M)
-            {
+            /// Adds a route to the application for the HTTP method .
+            pub fn $name<M: Middleware + 'static>(&mut self, path: impl Into<String>, middleware: M) {
                 self.route(Method::$method, path.into(), middleware);
             }
         )+
@@ -48,46 +34,31 @@ macro_rules! route_methods {
 }
 
 impl App {
-    /// Create a new instance of the application with default configuration.
+    /// Create a new instance of the application
     #[must_use = "Does nothing if you don't use the `listen` method"]
     pub fn new() -> Self {
         Self {
-            config: AppConfig { threads: 6 },
-            routes: Arc::new(RwLock::new(Vec::new())),
-            middleware: Arc::new(RwLock::new(Vec::new())),
+            routes: Vec::new(),
+            middleware: Vec::new(),
         }
     }
-    /// Create a new instance of the application with the given configuration.
-    pub fn with_config(config: AppConfig) -> Self {
-        Self {
-            config,
-            routes: Arc::new(RwLock::new(Vec::new())),
-            middleware: Arc::new(RwLock::new(Vec::new())),
-        }
-    }
-
+   
     /// Add a route to the application.
     /// 
     /// Every Route Returns A MiddlewareResult to control the flow of your application.
     /// 
-    /// # Panics
-    ///
-    /// Panics if the internal [`RwLock`] protecting the routes is poisoned.
-    pub fn route<M: Middleware + 'static>(&mut self, method: Method, path: String, middleware: M) {
-        self.routes.write().push(Route {
+    pub fn route<M: Middleware + 'static>(&mut self, method: Method, path: impl Into<Cow<'static, str>>, middleware: M) {
+        self.routes.push(Route {
             method,
-            path,
+            path: path.into(),
             middleware: Box::new(middleware),
         });
     }
 
     /// Add a global middleware to the application that will be applied to all routes.
     ///
-    /// # Panics
-    ///
-    /// Panics if the internal [`RwLock`] protecting the middleware is poisoned.
     pub fn use_middleware(&mut self, middleware: impl Middleware + 'static) {
-        self.middleware.write().push(Box::new(middleware));
+        self.middleware.push(Box::new(middleware));
     }
 
     route_methods!(
@@ -103,22 +74,16 @@ impl App {
     fn run_middleware(
         mut request: &mut Request,
         routes: &[Route],
-        middleware: &[Box<dyn Middleware>],
+        global_middleware: &[Box<dyn Middleware>],
     ) -> Response {
         let mut response = Response::default();
-        for middleware in middleware {
+        // Run global middleware
+        for middleware in global_middleware {
             middleware.handle(&mut request, &mut response);
         }
-        for Route {
-            method,
-            path,
-            middleware,
-        } in routes
-        {
-            if *method != request.method || *path != request.uri.to_string() {
-                continue;
-            }
-            middleware.handle(request, &mut response);
+        // Run route-specific middleware
+        if let Some(route) = routes.iter().find(|r| r.method == request.method && r.path == request.uri.to_string()) {
+            route.middleware.handle(request, &mut response);
         }
         response
     }
@@ -128,19 +93,15 @@ impl App {
     ///
     /// # Panics
     ///
-    /// Panics if the server fails to start or if the internal [`RwLock`]s protecting the routes
-    /// or middleware are poisoned.
+    /// Panics if the server fails to start 
     pub fn listen(&self, address: impl ToSocketAddrs + Display) {
         let server_conf = ServerConfig{
             address: address.to_string(),
-            core_size: self.config.threads,
-            max_size: self.config.threads+ 6,
-            idle_timeout: std::time::Duration::from_secs(5),
         };
         let server = Server::new(server_conf);
         println!("{} : {}", "Feather Listening on".blue(),format!("http://{address}").green());
-        let routes = self.routes.read().clone(); // Clone once
-        let middleware = self.middleware.read().clone(); // Clone once
+        let routes = self.routes.clone();
+        let middleware = self.middleware.clone(); 
         server.incoming().for_each(move |mut req| {
             let response = Self::run_middleware(&mut req, &routes, &middleware);
             return response;

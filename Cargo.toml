@@ -15,10 +15,8 @@ colored = "3.0.0"
 dyn-clone = "1.0.19"
 serde = { version = "1.0.217", features = ["derive"] , optional = true}
 serde_json = {version = "1.0.135", optional = true}
-thiserror = "2.0.12"
-rayon = "*"
 feather-runtime ={ path = "./feather-runtime" }
-parking_lot = "0.12.3"
+
 
 [dev-dependencies]
 reqwest = {version = "0.12.15", features = ["blocking"]}
@@ -39,7 +37,3 @@ path = "examples/app.rs"
 [[example]]
 name = "middleware"
 path = "examples/middleware.rs"
-
-
-[profile.release]
-debug = true

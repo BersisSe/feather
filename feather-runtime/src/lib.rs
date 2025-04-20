@@ -1,7 +1,7 @@
 #![warn(clippy::unwrap_used)]
 
-pub mod server;
 pub mod http;
+pub mod server;
 mod utils;
 
-pub use::http::{Method,HeaderMap,HeaderName,HeaderValue,Uri};
+pub use ::http::{HeaderMap, HeaderName, HeaderValue, Method, Uri};

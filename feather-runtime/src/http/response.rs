@@ -1,44 +1,33 @@
-use std::str::FromStr;
-use bytes::Bytes; // Import Bytes
-use http::{ HeaderMap, HeaderName, HeaderValue, StatusCode };
+use bytes::Bytes; 
+use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use serde::Serialize;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Default)]
 pub struct HttpResponse {
+    /// The HTTP status code of the response.
+    /// This is a 3-digit integer that indicates the result of the request.
     pub status: StatusCode,
+    /// The headers of the HTTP response.
+    /// Headers are key-value pairs that provide additional information about the response.
     pub headers: HeaderMap,
-    pub body: Option<Bytes>, // Use Bytes for efficient binary data handling
-    pub version: http::Version, // Add HTTP version for more flexibility
+    /// The body of the HTTP response.
+    /// This is the content that is sent back to the client.
+    /// The body is represented as a `Bytes` object for efficient handling of binary data.
+    /// But The Other Method like `json()`,`body()`can be used to get the body in different formats.
+    pub body: Option<Bytes>, 
+    /// The HTTP version of the response.
+    pub version: http::Version, 
 }
 
 impl HttpResponse {
-    /// Creates a new `HttpResponse` with a status code and optional body.
-    pub fn new(status: StatusCode, body: Option<Bytes>) -> Self {
-        let mut headers = HeaderMap::new();
-        if let Some(ref body) = body {
-            headers.insert("Content-Length", body.len().to_string().parse().unwrap());
-            headers.insert("Content-Type", "application/octet-stream".parse().unwrap());
-        }
-
-        Self { status, headers, body, version: http::Version::HTTP_11 }
+    /// Sets the StatusCode of the response.
+    /// The StatusCode is a 3-digit integer that indicates the result of the request.    
+    pub fn status(&mut self,status: impl Into<StatusCode>) {
+        self.status = status.into();
     }
-
-    /// Convenience method for creating a 200 OK response with a body.
-    pub fn ok(body: impl Into<String>) -> Self {
-        let mut headers = HeaderMap::new();
-        let body = body.into();
-        headers.insert("Content-Length", body.len().to_string().parse().unwrap());
-        headers.insert("Content-Type", "text/plain".parse().unwrap());
-        headers.insert("Server", "Feather-Runtime".parse().unwrap());
-        headers.insert("Connection", "keep-alive".parse().unwrap());
-        Self {
-            status: StatusCode::OK,
-            headers,
-            body: Some(Bytes::from(body)),
-            version: http::Version::HTTP_11,
-        }
-    }
-
+    /// Adds a header to the response.
+    /// The header is a key-value pair that provides additional information about the response.
     pub fn add_header(&mut self, key: &str, value: &str) -> Option<()> {
         if let Ok(val) = HeaderValue::from_str(value) {
             if let Ok(key) = HeaderName::from_str(key) {
@@ -81,31 +70,59 @@ impl HttpResponse {
     pub fn send_text(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        self.headers.insert("Content-Type", "text/plain".parse().unwrap());
-        self.headers.insert("Server", "Feather-Runtime".parse().unwrap());
-        self.headers.insert("Connection", "keep-alive".parse().unwrap());
+        self.headers
+            .insert("Content-Type", "text/plain".parse().unwrap());
         self.headers.insert(
             "Content-Length",
-            self.body.as_ref().unwrap().len().to_string().parse().unwrap()
+            self.body
+                .as_ref()
+                .unwrap()
+                .len()
+                .to_string()
+                .parse()
+                .unwrap(),
+        );
+        self.headers.insert(
+            "Date", 
+            chrono::Utc::now().to_string().parse().unwrap()
         );
     }
     pub fn send_bytes(&mut self, data: impl Into<Vec<u8>>) {
         let body = data.into();
+        self.headers.insert(
+            "Date", 
+            chrono::Utc::now().to_string().parse().unwrap()
+        );
         self.body = Some(Bytes::from(body));
-        self.headers.insert("Server", "Feather-Runtime".parse().unwrap());
         self.headers.insert(
             "Content-Length",
-            self.body.as_ref().unwrap().len().to_string().parse().unwrap()
+            self.body
+                .as_ref()
+                .unwrap()
+                .len()
+                .to_string()
+                .parse()
+                .unwrap(),
         );
     }
     pub fn send_html(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        self.headers.insert("Server", "Feather-Runtime".parse().unwrap());
-        self.headers.insert("Content-Type", "text/html".parse().unwrap());
+        self.headers.insert(
+            "Date", 
+            chrono::Utc::now().to_string().parse().unwrap()
+        );
+        self.headers
+            .insert("Content-Type", "text/html".parse().unwrap());
         self.headers.insert(
             "Content-Length",
-            self.body.as_ref().unwrap().len().to_string().parse().unwrap()
+            self.body
+                .as_ref()
+                .unwrap()
+                .len()
+                .to_string()
+                .parse()
+                .unwrap(),
         );
     }
     pub fn send_json<T: Serialize>(&mut self, data: T) {
@@ -113,34 +130,51 @@ impl HttpResponse {
             Ok(json) => {
                 self.body = Some(Bytes::from(json));
                 self.headers.insert(
-                    "Content-Type",
-                    HeaderValue::from_static("application/json")
+                    "Date", 
+                    chrono::Utc::now().to_string().parse().unwrap()
                 );
+                self.headers
+                    .insert("Content-Type", HeaderValue::from_static("application/json"));
                 self.headers.insert(
                     "Content-Length",
-                    self.body.as_ref().unwrap().len().to_string().parse().unwrap()
+                    self.body
+                        .as_ref()
+                        .unwrap()
+                        .len()
+                        .to_string()
+                        .parse()
+                        .unwrap(),
                 );
-                self.headers.insert(
-                    "Server",
-                    HeaderValue::from_static("Feather-Runtime")
-                );
-            },
+                
+            }
             Err(_) => {
+                self.headers.insert(
+                    "Date", 
+                    chrono::Utc::now().to_string().parse().unwrap()
+                );
                 self.status = StatusCode::INTERNAL_SERVER_ERROR;
                 self.body = Some(Bytes::from("Internal Server Error"));
-                self.headers.insert(
-                    "Content-Type",
-                    HeaderValue::from_static("text/plain")
-                );
+                self.headers
+                    .insert("Content-Type", HeaderValue::from_static("text/plain"));
                 self.headers.insert(
                     "Content-Length",
-                    self.body.as_ref().unwrap().len().to_string().parse().unwrap()
+                    self.body
+                        .as_ref()
+                        .unwrap()
+                        .len()
+                        .to_string()
+                        .parse()
+                        .unwrap(),
                 );
-                self.headers.insert(
-                    "Server",
-                    HeaderValue::from_static("Feather-Runtime")
-                );
-            },
+                
+            }
         }
+    }
+}
+
+
+impl Display for HttpResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}", self.to_string())
     }
 }

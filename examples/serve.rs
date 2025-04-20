@@ -1,6 +1,8 @@
 use feather::middleware::{MiddlewareResult, ServeStatic};
 use feather::{App, Request, Response};
-
+// To Use this example you need to have a 'public' directory with some static files in it
+// in the same directory as this file.
+// This example shows how to use the ServeStatic middleware to serve static files from a directory.
 fn main() {
     // Create a new instance of App
     let mut app = App::new();
@@ -10,7 +12,6 @@ fn main() {
         MiddlewareResult::Next
     });
     // Use the ServeStatic middleware to serve static files from the "public" directory
-
     app.use_middleware(ServeStatic::new("./public".to_string()));// You can change the path to your static files here
 
     //Lets Listen on port 8080

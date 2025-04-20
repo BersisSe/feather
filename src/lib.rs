@@ -7,7 +7,6 @@ pub mod middleware;
 mod sync;
 
 pub use crate::middleware::{Middleware,MiddlewareResult};
-pub use crate::sync::AppConfig;
 pub use feather_runtime::http::HttpRequest as Request;
 pub use feather_runtime::http::HttpResponse as Response;
 pub use sync::App;
