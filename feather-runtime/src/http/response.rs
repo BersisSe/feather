@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Default)]
-pub struct HttpResponse {
+pub struct Response {
     /// The HTTP status code of the response.
     /// This is a 3-digit integer that indicates the result of the request.
     pub status: StatusCode,
@@ -20,11 +20,11 @@ pub struct HttpResponse {
     pub version: http::Version, 
 }
 
-impl HttpResponse {
+impl Response {
     /// Sets the StatusCode of the response.
     /// The StatusCode is a 3-digit integer that indicates the result of the request.    
-    pub fn status(&mut self,status: impl Into<StatusCode>) {
-        self.status = status.into();
+    pub fn status(&mut self,status: u16) {
+        self.status = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     }
     /// Adds a header to the response.
     /// The header is a key-value pair that provides additional information about the response.
@@ -173,7 +173,7 @@ impl HttpResponse {
 }
 
 
-impl Display for HttpResponse {
+impl Display for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{}", self.to_string())
     }

@@ -6,7 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## Feather[Runtime Third Update] - 2025-04-20
+## Feather V0.2.1 - 2025-04-24
+
+### Notes
+This Update is a minor update to the Feather Framework and Feather Runtime. It includes some new features and bug fixes. The JWT module is a new feature that allows you to create and verify JWT tokens easily it can be used when the `jwt` feature is enabled. The new `chain` macro allows you to chain multiple middlewares together for better organization and readability.
+
+### Added
+**Feather Framework**
+- The New JWT Module to create and verify JWT tokens
+- New Jwt Auth Helper to protect the routes with JWT
+- New `generate_jtw`
+- New `chain` macro to chain the middlewares together
+**Feather Runtime**
+- N/A
+
+
+### Removed
+**Feather Framework**
+- N/A
+
+**Feather Runtime**
+- N/A
+
+### Fixed
+**Feather Framework**
+- N/A
+
+**Feather Runtime**
+- Fixed the bug that Response object's status cannot be changed
+
+### Changed
+**Feather Framework**
+- Middleware module has been split into multiple files for better organization, this might break some of the code that uses the old module path!
+**Feather Runtime**
+- N/A
+---
+
+
+## Feather V0.2.0[Runtime Third Update] - 2025-04-20
 
 
 ### Added

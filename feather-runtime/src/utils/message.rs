@@ -1,4 +1,4 @@
-use crate::http::HttpRequest;
+use crate::http::Request;
 use std::io::Error as IoError;
 
 
@@ -13,7 +13,7 @@ pub enum Message{
 
 pub struct Connection{
     pub(crate) stream: std::net::TcpStream,
-    pub(crate) request: HttpRequest,
+    pub(crate) request: Request,
 }
 
 

@@ -5,7 +5,7 @@ use std::fmt;
 
 
 #[derive(Debug, Clone)]
-pub struct HttpRequest {
+pub struct Request {
     /// The HTTP method of the request.<br>
     /// For example, GET, POST, PUT, DELETE, etc.
     pub method: Method,
@@ -16,12 +16,12 @@ pub struct HttpRequest {
     /// The headers of the request.
     pub headers: HeaderMap,
     /// The body of the request.
-    pub body: Bytes, // Changed from String to Bytes
+    pub body: Bytes, 
     /// The extensions of the request.
-    pub extensions: Extensions, // Added extensions field
+    pub extensions: Extensions, 
 }
 
-impl HttpRequest {
+impl Request {
     /// Parses the body of the request as Serde JSON Value. Returns an error if the body is not valid JSON.
     /// This method is useful for parsing JSON payloads in requests.
     pub fn json(&self) -> Result<serde_json::Value, Error> {
@@ -31,7 +31,7 @@ impl HttpRequest {
     }
 }
 
-impl fmt::Display for HttpRequest {
+impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

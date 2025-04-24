@@ -1,12 +1,11 @@
 use crate::middleware::Middleware;
 use colored::Colorize;
+pub use feather_runtime::Method;
+use feather_runtime::http::{Request, Response};
+use feather_runtime::server::server::Server;
 use feather_runtime::server::server::ServerConfig;
-use std::{fmt::Display, net::ToSocketAddrs};
-use feather_runtime::Method;
-use feather_runtime::http::HttpResponse as Response;
-use feather_runtime::{http::HttpRequest as Request, server::server::Server};
 use std::borrow::Cow;
-
+use std::{fmt::Display, net::ToSocketAddrs};
 
 /// A route in the application.
 #[derive(Clone)]
@@ -42,12 +41,16 @@ impl App {
             middleware: Vec::new(),
         }
     }
-   
-    /// Add a route to the application.
-    /// 
+
+    /// Add a route to the application.<br>
     /// Every Route Returns A MiddlewareResult to control the flow of your application.
-    /// 
-    pub fn route<M: Middleware + 'static>(&mut self, method: Method, path: impl Into<Cow<'static, str>>, middleware: M) {
+    ///
+    pub fn route<M: Middleware + 'static>(
+        &mut self,
+        method: Method,
+        path: impl Into<Cow<'static, str>>,
+        middleware: M,
+    ) {
         self.routes.push(Route {
             method,
             path: path.into(),
@@ -82,7 +85,10 @@ impl App {
             middleware.handle(&mut request, &mut response);
         }
         // Run route-specific middleware
-        if let Some(route) = routes.iter().find(|r| r.method == request.method && r.path == request.uri.to_string()) {
+        if let Some(route) = routes
+            .iter()
+            .find(|r| r.method == request.method && r.path == request.uri.to_string())
+        {
             route.middleware.handle(request, &mut response);
         }
         response
@@ -93,18 +99,25 @@ impl App {
     ///
     /// # Panics
     ///
-    /// Panics if the server fails to start 
+    /// Panics if the server fails to start
     pub fn listen(&self, address: impl ToSocketAddrs + Display) {
-        let server_conf = ServerConfig{
+        let server_conf = ServerConfig {
             address: address.to_string(),
         };
         let server = Server::new(server_conf);
-        println!("{} : {}", "Feather Listening on".blue(),format!("http://{address}").green());
+        println!(
+            "{} : {}",
+            "Feather Listening on".blue(),
+            format!("http://{address}").green()
+        );
         let routes = self.routes.clone();
-        let middleware = self.middleware.clone(); 
-        server.incoming().for_each(move |mut req| {
-            let response = Self::run_middleware(&mut req, &routes, &middleware);
-            return response;
-        }).unwrap();
+        let middleware = self.middleware.clone();
+        server
+            .incoming()
+            .for_each(move |mut req| {
+                let response = Self::run_middleware(&mut req, &routes, &middleware);
+                return response;
+            })
+            .unwrap();
     }
 }

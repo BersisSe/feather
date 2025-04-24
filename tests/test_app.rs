@@ -1,5 +1,5 @@
-use feather::middleware::MiddlewareResult;
 use feather::App;
+use feather::middleware::MiddlewareResult;
 use feather::{Request, Response};
 use reqwest::blocking::get;
 use std::thread;

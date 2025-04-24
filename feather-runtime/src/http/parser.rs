@@ -1,10 +1,10 @@
 use std::str::FromStr;
-use super::HttpRequest;
+use super::Request;
 use crate::utils::error::Error;
 use bytes::Bytes;
 use http::{Extensions, HeaderMap, Method, Uri, Version};
 
-pub fn parse(raw: &[u8]) -> Result<HttpRequest, Error> {
+pub fn parse(raw: &[u8]) -> Result<Request, Error> {
     let mut headers = [httparse::EMPTY_HEADER; 16];
     let mut request = httparse::Request::new(&mut headers);
     request
@@ -40,7 +40,7 @@ pub fn parse(raw: &[u8]) -> Result<HttpRequest, Error> {
         .unwrap_or(raw.len());
     let body = Bytes::copy_from_slice(&raw[body_start..]); // Changed from String to Bytes
     let extensions = Extensions::new();
-    Ok(HttpRequest {
+    Ok(Request {
         method,
         uri,
         version,

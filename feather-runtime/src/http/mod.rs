@@ -1,6 +1,6 @@
 mod request;
 mod response;
 mod parser;
-pub use request::HttpRequest;
-pub use response::HttpResponse;
+pub use request::Request;
+pub use response::Response;
 pub(crate) use parser::parse;

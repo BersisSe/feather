@@ -1,8 +1,8 @@
 // Import dependencies from Feather
 use feather::{App, Request, Response};
 // Import the Middleware trait and some common middleware primitives
-use feather::middleware::{Logger, Middleware, MiddlewareResult};
-
+use feather::middleware::builtins;
+use feather::middleware::{Middleware, MiddlewareResult};
 // Implementors of the Middleware trait are middleware that can be used in a Feather app.
 #[derive(Clone)]
 struct Custom;
@@ -24,7 +24,7 @@ fn main() {
     let mut app = App::new();
 
     // Use the builtin Logger middleware for all routes
-    app.use_middleware(Logger);
+    app.use_middleware(builtins::Logger);
 
     // Use the Custom middleware for all routes
     app.use_middleware(Custom);

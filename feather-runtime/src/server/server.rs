@@ -3,7 +3,7 @@ use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
-use crate::http::{HttpRequest, HttpResponse,parse};
+use crate::http::{Request, Response, parse};
 use crate::utils::worker::{TaskPool,Job};
 use crate::utils::{Connection, Message, Queue};
 
@@ -156,7 +156,7 @@ impl IncomingRequests<'_> {
     /// It will also handle the response and write it to the stream.
     pub fn for_each<F>(self, mut handle: F) -> io::Result<()>
     where
-        F: FnMut(HttpRequest) -> HttpResponse + Send + Clone + 'static,
+        F: FnMut(Request) -> Response + Send + Clone + 'static,
     {
         let server = self.server;
         loop {
