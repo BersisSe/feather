@@ -22,6 +22,8 @@
 - 📦 **Modular and Extensible**  
   Build the framework you want with plug-and-play middleware, simple traits, and clear primitives.
 
+- 🔨 **Great Tooling Out Of the Box**  
+  With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) Creating API's and Web Servers Become a Breeze.
 ---
 
 ## 🚀 Getting Started
