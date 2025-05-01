@@ -1,128 +1,191 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-
-## Feather V0.2.1 - 2025-04-24
-
-### Notes
-This Update is a minor update to the Feather Framework and Feather Runtime. It includes some new features and bug fixes. The JWT module is a new feature that allows you to create and verify JWT tokens easily it can be used when the `jwt` feature is enabled. The new `chain` macro allows you to chain multiple middlewares together for better organization and readability.
-
-### Added
-**Feather Framework**
-- The New JWT Module to create and verify JWT tokens
-- New Jwt Auth Helper to protect the routes with JWT
-- New `generate_jtw`
-- New `chain` macro to chain the middlewares together
-**Feather Runtime**
-- N/A
-
-
-### Removed
-**Feather Framework**
-- N/A
-
-**Feather Runtime**
-- N/A
-
-### Fixed
-**Feather Framework**
-- N/A
-
-**Feather Runtime**
-- Fixed the bug that Response object's status cannot be changed
-
-### Changed
-**Feather Framework**
-- Middleware module has been split into multiple files for better organization, this might break some of the code that uses the old module path!
-**Feather Runtime**
-- N/A
 ---
 
+## [0.3.0] - 2025-04-24
 
-## Feather V0.2.0[Runtime Third Update] - 2025-04-20
+### Notes
 
-
-### Added
-**Feather Framework**
-- New Json methods for the `Request` object to make it easier to get the json body
-- Doc comments for almost all methods and structs
-**Feather Runtime**
-- The internals has been rewitten to be more readable and understandable
-- Added TaskPool to manage concurrent tasks(Essentially Concurrent Requests)
-- Added a new MessagesQueue to manage the requests efficiently
-- Added a new Connection Managment system to manage the connections efficiently
-- Added Proper error handling and logging
-
-
-### Removed
-**Feather Framework**
-- The `AppConfig` struct has been removed.
-- The `App` struct's `with_config` method has been removed.
-
-**Feather Runtime**
-- Rusty-pool Dependency has been removed
-
-
-### Fixed
-**Feather Framework**
-- Improved the General Performance of the framework(More on that topic in the runtime section).
-
-**Feather Runtime**
-- Fixed the bug if the client shutsdown the connection server will not send a response back
-- Fixed the bug server would not shutdown properly
-- Improved the performance of the Runtime by changing the internals to be more efficient [Details](feather-runtime/Performance.md)
-
-
-
-
-
-
-
-
-## Feather[Runtime Second Update] - 2025-04-07
+This update is a major update. it adds a Solid State management system on top of Feather called Context API.  
+Every App now has a Context from that Context you can add State or Retrieve State this is especially usefull when using databases or file accesses.  
+App Context is also reserved for future use for things like event system ,html rendering and more!
 
 ### Added
-- A new `ServeStatic` middleware to serve static files from a directory
-- New `Response` methods `Send`, `SendJson`, and `SendHtml` so you dont have to dereference the response object to change the value
 
-### Changed
-- The `MiddlewareResult` enum now is inculuded in the prelude file for easier access
+**Feather Framework**
 
+- New Context Api to manage app state without extractors or macros
+- New context.rs example to show how context works with a database
+  **Feather Runtime**
 
-## [Feather[Runtime First Update]] - 2025-04-04
-
-### Added
-- Easier to understand api for Response and Request objects
-- App Struct now has a `with_config` method to create a app with a config 
-
-### Changed
-- Some of the internal code has been changed to be more readable and understandable
-- The App struct's `new` method does not take a config anymore.
-
-### Deprecated
 - N/A
 
 ### Removed
+
+**Feather Framework**
+
+- _BREAKING CHANGE_: The old routes now require a `context` parameter.
+
+**Feather Runtime**
+
 - N/A
 
 ### Fixed
+
+**Feather Framework**
+
 - N/A
 
-### Security
-- N/A
+**Feather Runtime**
 
-## [Feather[Runtime Change]]
+- Response's status method now returns a referance to the response so you can chain other methods like send_text etc
 
 ### Changed
-- Moved To `Feather-Runtime` from `Tiny-http` See Feather Runtime's Readme for more [Feather-Runtime](feather-runtime/README.md)
 
+**Feather Framework**
 
-## [0.1.1] - 2025-03-21
+- Changed the file structure for better readablity.
+- Middlewares are no longer needs to implement `Clone`.  
+  **Feather Runtime**
+- N/A
+
+---
+
+## [0.2.1] - 2025-04-24
+
+### Notes
+
+This update is a minor update to the Feather Framework and Feather Runtime. It includes new features and bug fixes. The JWT module allows you to create and verify JWT tokens when the `jwt` feature is enabled. The new `chain` macro allows chaining multiple middlewares for better organization and readability.
+
 ### Added
-- First Update of the framework
-- Simple Express Style Routing and Middlewares
+
+**Feather Framework**
+
+- New JWT module to create and verify JWT tokens.
+- New JWT auth helper to protect routes with JWT.
+- New `generate_jwt` function.
+- New `chain` macro to chain middlewares together.
+
+**Feather Runtime**
+
+- N/A
+
+### Removed
+
+**Feather Framework**
+
+- N/A
+
+**Feather Runtime**
+
+- N/A
+
+### Fixed
+
+**Feather Framework**
+
+- N/A
+
+**Feather Runtime**
+
+- Fixed a bug where the `Response` object's status could not be changed.
+
+### Changed
+
+**Feather Framework**
+
+- Middleware module has been split into multiple files for better organization. This might break some code that uses the old module path.
+
+**Feather Runtime**
+
+- N/A
+
+---
+
+## [0.2.0] - 2025-04-20
+
+### Added
+
+**Feather Framework**
+
+- New JSON methods for the `Request` object to simplify retrieving the JSON body.
+- Doc comments for most methods and structs.
+
+**Feather Runtime**
+
+- Internals rewritten for better readability and maintainability.
+- Added `TaskPool` to manage concurrent tasks (essentially concurrent requests).
+- Added `MessageQueue` to manage requests efficiently.
+- Added a new connection management system.
+- Added proper error handling and logging.
+
+### Removed
+
+**Feather Framework**
+
+- Removed the `AppConfig` struct.
+- Removed the `App` struct's `with_config` method.
+
+**Feather Runtime**
+
+- Removed the `rusty-pool` dependency.
+
+### Fixed
+
+**Feather Framework**
+
+- Improved general performance.
+
+**Feather Runtime**
+
+- Fixed a bug where the server would not send a response if the client shut down the connection.
+- Fixed a bug where the server would not shut down properly.
+- Improved runtime performance by optimizing internals. See [details](feather-runtime/Performance.md).
+
+---
+
+## [0.1.2] - 2025-04-07
+
+### Added
+
+- New `ServeStatic` middleware to serve static files from a directory.
+- New `Response` methods: `send`, `send_json`, and `send_html` for easier response handling.
+
+### Changed
+
+- The `MiddlewareResult` enum is now included in the prelude file for easier access.
+
+---
+
+## [0.1.1] - 2025-04-04
+
+### Added
+
+- Simplified API for `Response` and `Request` objects.
+- `App` struct now has a `with_config` method to create an app with a configuration.
+
+### Changed
+
+- Internal code refactored for better readability and maintainability.
+- The `App` struct's `new` method no longer takes a configuration.
+
+---
+
+## [0.1.0] - 2025-03-21
+
+### Added
+
+- Initial release of the framework.
+- Simple Express-style routing and middlewares.
 - Configurable thread pool for handling concurrent requests.
+
+---
+
+## [0.0.1] - 2025-03-15
+
+### Changed
+
+- Migrated to `Feather-Runtime` from `Tiny-HTTP`. See [Feather Runtime README](feather-runtime/README.md) for details.

@@ -156,7 +156,7 @@ impl IncomingRequests<'_> {
     /// It will also handle the response and write it to the stream.
     pub fn for_each<F>(self, mut handle: F) -> io::Result<()>
     where
-        F: FnMut(Request) -> Response + Send + Clone + 'static,
+        F: FnMut(Request) -> Response,
     {
         let server = self.server;
         loop {

@@ -1,6 +1,6 @@
 [package]
 name = "feather"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 repository = "https://github.com/BersisSe/feather"
 description = "Feather: A minimal HTTP framework for Rust"
@@ -12,16 +12,16 @@ categories = ["web-programming","network-programming"]
 
 [dependencies]
 colored = "3.0.0"
-dyn-clone = "1.0.19"
 serde = { version = "1.0.217", features = ["derive"] , optional = true}
 serde_json = {version = "1.0.135", optional = true}
 chrono = { version = "0.4.26"}
 jsonwebtoken = { version = "9.1.0", optional = true}
-feather-runtime ={ path = "./feather-runtime",version = "0.1.0" }
-
+feather-runtime ={ path = "./feather-runtime"}
+anymap = "0.12.0"
 
 [dev-dependencies]
 reqwest = {version = "0.12.15", features = ["blocking"]}
+rusqlite = "0.35.0"
 
 [lib]
 name = "feather"
@@ -29,22 +29,14 @@ crate-type = ["lib"]
 path = "src/lib.rs"
 
 [features]
-default = ["json"]
+default = ["json","jwt"]
 json = ["dep:serde","dep:serde_json"]
 jwt = ["dep:jsonwebtoken"]
 
 
 
 [[example]]
-name = "app"
-path = "examples/app.rs"
-
-[[example]]
-name = "middleware"
-path = "examples/middleware.rs"
-
-
-[[example]]
 name = "jwt"
 path = "examples/jwt.rs"
 required-features = ["jwt"]
+

@@ -29,8 +29,8 @@ impl Request {
             Error::ParseError(format!("Failed to parse JSON body: {}", e))
         })
     }
+    
 }
-
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

@@ -1,6 +1,6 @@
 // Import dependencies from Feather
 use feather::middleware::builtins;
-use feather::{App, MiddlewareResult};
+use feather::{App, AppContext, MiddlewareResult};
 use feather::{Request, Response};
 
 // Main function - no async here!
@@ -9,10 +9,13 @@ fn main() {
     let mut app = App::new();
 
     // Define a route for the root path
-    app.get("/", |_request: &mut Request, response: &mut Response| {
-        response.send_text("Hello, world!");
-        MiddlewareResult::Next
-    });
+    app.get(
+        "/",
+        |_request: &mut Request, response: &mut Response, _ctx: &mut AppContext| {
+            response.send_text("Hello, world!");
+            MiddlewareResult::Next
+        },
+    );
     // Use the Logger middleware for all routes
     app.use_middleware(builtins::Logger);
     // Listen on port 3000

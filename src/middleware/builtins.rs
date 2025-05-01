@@ -1,3 +1,5 @@
+use crate::internals::AppContext;
+
 use super::common::{Middleware, MiddlewareResult};
 use feather_runtime::http::{Request, Response};
 use std::{
@@ -6,18 +8,17 @@ use std::{
     path::Path,
 };
 
-#[derive(Clone)]
 /// Log incoming requests and transparently pass them to the next middleware.
 pub struct Logger;
 
 impl Middleware for Logger {
-    fn handle(&self, request: &mut Request, _: &mut Response) -> MiddlewareResult {
+    fn handle(&self, request: &mut Request, _: &mut Response, _: &mut AppContext) -> MiddlewareResult {
         println!("Request: {request}");
         MiddlewareResult::Next
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 /// Add [CORS] headers to the response.
 ///
 /// [CORS]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
@@ -31,7 +32,7 @@ impl Cors {
 }
 
 impl Middleware for Cors {
-    fn handle(&self, _: &mut Request, response: &mut Response) -> MiddlewareResult {
+    fn handle(&self, _: &mut Request, response: &mut Response, _: &mut AppContext) -> MiddlewareResult {
         response.add_header(
             "Access-Control-Allow-Origin",
             self.0.as_deref().unwrap_or("*"),
@@ -40,7 +41,6 @@ impl Middleware for Cors {
     }
 }
 
-#[derive(Clone)]
 /// Serve static files from the given path.
 pub struct ServeStatic(String);
 
@@ -52,7 +52,12 @@ impl ServeStatic {
 }
 
 impl Middleware for ServeStatic {
-    fn handle(&self, request: &mut Request, response: &mut Response) -> MiddlewareResult {
+    fn handle(
+        &self,
+        request: &mut Request,
+        response: &mut Response,
+        _: &mut AppContext,
+    ) -> MiddlewareResult {
         let wanted_path = request.uri.to_string();
         let dir = fs::read_dir(Path::new(self.0.as_str()))
             .expect(format!("Error While Reading the {}", self.0).as_str());

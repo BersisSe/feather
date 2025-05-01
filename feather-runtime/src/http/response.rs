@@ -21,10 +21,14 @@ pub struct Response {
 }
 
 impl Response {
-    /// Sets the StatusCode of the response.
+    /// Sets the StatusCode of the response and Returns a Muteable Reference to the Response so you can things like
+    /// ```rust
+    /// res.status(200).send_text("eyo");
+    /// ```
     /// The StatusCode is a 3-digit integer that indicates the result of the request.    
-    pub fn status(&mut self,status: u16) {
+    pub fn status(&mut self,status: u16) -> &mut Response {
         self.status = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        self
     }
     /// Adds a header to the response.
     /// The header is a key-value pair that provides additional information about the response.
