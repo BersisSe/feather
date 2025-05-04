@@ -5,19 +5,19 @@
 ## Why Feather?
 
 - **Middleware-First Architecture**  
-  Everything is a middleware — route handlers, auth, logging — all composable and clean.
+  Everything is a middleware — route handlers, auth, logging — all composable and clean
 
 - **Easy State Management Using Context**  
-  In the recent versions Feather, implemented the Context API that makes it very easy manage state without the use of Extractors/Macros
+  Recently implemented the Context API that makes it very easy to manage state without the use of Extractors/Macros
 
 - **Developer Experience First**  
   Feather’s API is minimal, ergonomic, and readable
 
 - **Modular and Extensible**  
-  Feather is designed to Modular, only select the features you need and use the. What you don't use you don't pay
+  Feather is designed to be Modular. Select only the features you need and use. What you don't use you don't pay for.
 
 - **Great Tooling Out Of the Box**  
-  With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) Creating API's and Web Servers become a _Breeze_.
+  With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) creating API's and Web Servers becomes a _Breeze_.
 
 ---
 
@@ -49,13 +49,13 @@ fn main() {
 
 ```
 
-That’s all — no async,
+That’s all — no async.
 
 ---
 
 ## Middleware in Feather
 
-Middleware is intented to be heart of Feather. You may write it as a closure, a struct, or chain them together:
+Middleware is intented to be the heart of Feather. You may write it as a closure, a struct, or chain them together:
 
 ```rust,no_run
 use feather::{App, AppContext, Request, Response};
@@ -93,7 +93,8 @@ fn main() {
 
 ## State Management using the Context API
 
-Feather's new Context API allows you to manage application-wide state without extractors or macros.  
+Feather's new Context API allows you to manage application-wide state without extractors or macros.
+
 As an example:
 
 ```rust,no_run
@@ -124,11 +125,11 @@ fn main() {
 }
 ```
 
-Context Is more useful when combined with Database/File Accesses
+Context is especially useful when needing to access databases and files.
 
 ## Built-in JWT Authentication
 
-Feather has native JWT module activated using a cargo feature `jwt`:
+Feather has a native JWT module activated using a cargo feature `jwt`:
 
 ```toml
 [dependencies]
@@ -147,7 +148,7 @@ fn main() {
         feather::MiddlewareResult::Next
       }),
     );
-    // Check the JWT Example for more complete version!
+    // Check the JWT Example for a more complete version!
     app.listen("127.0.0.1:8080")
 }
 ```
@@ -164,8 +165,8 @@ fn main() {
 
 ## Contributing
 
-PRs welcome!  
-If you’ve got ideas or bugs, please [open an issue]([https://github.com/BersisSe/feather/issues) or submit a pull request.
+PRs are welcome!  
+If you have ideas or bugs, please [open an issue]([https://github.com/BersisSe/feather/issues) or submit a pull request.
 
 ```bash
 # Getting started with dev
