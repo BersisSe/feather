@@ -1,7 +1,9 @@
 use crate::utils::error::Error;
 use bytes::Bytes;
 use http::{Extensions, HeaderMap, Method, Uri, Version};
-use std::fmt;
+use std::{collections::HashMap, fmt};
+
+use super::ConnectionState;
 
 
 #[derive(Debug, Clone)]
@@ -19,6 +21,8 @@ pub struct Request {
     pub body: Bytes, 
     /// The extensions of the request.
     pub extensions: Extensions, 
+    // Connection State(Keep-Alive OR Close) of the Request
+    pub(crate) connection: Option<ConnectionState>,
 }
 
 impl Request {
@@ -29,7 +33,15 @@ impl Request {
             Error::ParseError(format!("Failed to parse JSON body: {}", e))
         })
     }
-    
+    pub fn query(&self) -> Result<HashMap<String,String>, Error>{
+        if let Some(query) = self.uri.query(){
+            serde_urlencoded::from_str(query).map_err(|e|{
+                Error::ParseError(format!("Failed to Parse Query parameters {}",e))
+            })
+        }else{
+            Ok(HashMap::new())
+        }
+    }
 }
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

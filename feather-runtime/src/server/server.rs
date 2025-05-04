@@ -163,9 +163,15 @@ impl IncomingRequests<'_> {
             match server.recv() {
                 Ok(connection) => {
                     let request = connection.request.clone();
-                    let response = handle(request);
+                    let connect = request
+                        .connection
+                        .as_deref()
+                        .unwrap_or("keep-alive")
+                        .to_lowercase();
+                    let mut response = handle(request);
+                    response.add_header("connection", &connect);
                     let mut writer = BufWriter::new(connection.stream);
-                    writer.write_all(response.to_string().as_bytes())?;
+                    writer.write_all(response.to_raw().as_bytes())?;
                     match writer.flush() {
                         Ok(_) => {},
                         Err(e) if e.kind() == io::ErrorKind::BrokenPipe => {
@@ -177,6 +183,9 @@ impl IncomingRequests<'_> {
                             break;
                         }
                     };
+                    if connect == "close"{
+                        break;
+                    }
                 }
                 Err(e) => {
                     log::error!("Error receiving message: {}", e);

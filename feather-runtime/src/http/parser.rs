@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use super::Request;
+use super::{ConnectionState, Request};
 use crate::utils::error::Error;
 use bytes::Bytes;
 use http::{Extensions, HeaderMap, Method, Uri, Version};
@@ -7,6 +7,7 @@ use http::{Extensions, HeaderMap, Method, Uri, Version};
 pub fn parse(raw: &[u8]) -> Result<Request, Error> {
     let mut headers = [httparse::EMPTY_HEADER; 16];
     let mut request = httparse::Request::new(&mut headers);
+    let mut connection= None;
     request
         .parse(raw)
         .map_err(|e| Error::ParseError(format!("Failed to parse request: {}", e)))?;
@@ -31,6 +32,13 @@ pub fn parse(raw: &[u8]) -> Result<Request, Error> {
             .map_err(|e| Error::ParseError(format!("Failed to parse header name: {}", e)))?;
         let value = http::header::HeaderValue::from_bytes(header.value)
             .map_err(|e| Error::ParseError(format!("Failed to parse header value: {}", e)))?;
+        
+        if name.as_str().eq_ignore_ascii_case("connection"){
+            connection = ConnectionState::parse(value.to_str().unwrap_or(""))
+        }
+        else {
+            connection = None
+        }
         header_map.insert(name, value);
     }
     let body_start = raw
@@ -47,5 +55,6 @@ pub fn parse(raw: &[u8]) -> Result<Request, Error> {
         headers: header_map,
         body,
         extensions,
+        connection
     })
 }

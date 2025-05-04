@@ -42,7 +42,7 @@ impl Response {
         None
     }
     /// Converts the `HttpResponse` into a raw HTTP response string.
-    pub fn to_string(&self) -> String {
+    pub fn to_raw(&self) -> String {
         let mut response = format!(
             "HTTP/1.1 {} {}\r\n",
             self.status.as_u16(),

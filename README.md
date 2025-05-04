@@ -20,7 +20,7 @@
   In the recent version Feather implemented the Context API that allows it have easy state managment without the use of Extractors/Macros 
 
 - 🧑‍💻 **Developer Experience First**  
-  Feather’s API is minimal, ergonomic, and readable — no lifetimes, no `.await`, no boilerplate.
+  Feather’s API is minimal, ergonomic, and readable — no lifetimes, no `.await`, 
 
 - 📦 **Modular and Extensible**  
   Build the framework you want with plug-and-play middleware, simple traits, and clear primitives.
@@ -35,7 +35,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "0.3.0"
+feather = "0.3.1"
 ```
 
 ---
@@ -100,19 +100,30 @@ fn main() {
 ## 🏦 State Management using the Context API
 Feather's new Context API allows you to manage application-wide state without extractors or macros. Here's an example:
 ```rust,no_run
-use feather::{App,AppContext,MiddlewareResult,Response,Request};
+use feather::{App, AppContext, MiddlewareResult, Response, Request};
 
-struct MyData{pub data: i32}
+struct Counter {
+    pub count: i32,
+}
 
 fn main() {
     let mut app = App::new();
-    app.get("/", |req: &mut Request,res: &mut Response,ctx: &mut AppContext|{
-        let data = MyData{data:55};
-        ctx.set_state(data);
+    let counter = Counter { count: 0 };
+    app.context().set_state(counter);
+
+    app.get("/", move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
+        let counter: &mut Counter = ctx.get_mut_state::<Counter>().unwrap();
+        counter.count += 1;
+        res.send_text(format!("Counted! {}", counter.count));
+        MiddlewareResult::Next
+    });
+    app.get("/count", move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
+        let counter = ctx.get_state::<Counter>().unwrap();
+        res.send_text(counter.count.to_string());
         MiddlewareResult::Next
     });
 
-    let value = app.context().get_state::<MyData>().unwrap();
+    app.listen("127.0.0.1:5050");
 }
 ```
 Context Is more useful when combined with Database/File Accesses 
@@ -122,7 +133,7 @@ Context Is more useful when combined with Database/File Accesses
 Feather has native JWT middleware activated using a cargo feature `jwt`:
 ```toml
 [dependencies]
-feather = { version = "0.3.0", features = ["jwt"] }
+feather = { version = "0.3.1", features = ["jwt"] }
 ```
 
 ```rust,no_run

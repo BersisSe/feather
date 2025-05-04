@@ -53,7 +53,7 @@ impl<F: Fn(&mut Request, &mut Response, &mut AppContext) -> MiddlewareResult> Mi
 /// Can be used to chain two middlewares together.
 /// The first middleware will be executed first.
 /// If it returns `MiddlewareResult::Next`, the second middleware will be executed.
-fn chainer<A, B>(a: A, b: B) -> impl Middleware
+fn _chainer<A, B>(a: A, b: B) -> impl Middleware
 // Nvm the warning this is used in the macro
 where
     A: Middleware,

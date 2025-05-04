@@ -2,11 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
 ---
 
-## [0.3.0] - 2025-04-24
+## [0.3.1] - 2025-05-04
 
+### Notes
+This Update includes some bugs fixes in the Runtime and some Quality of life additions  
+### Added
+**Feather Framework**
+- Context now has `get_mut_state` method to access mutable state without Mutexes  
+- New Counter Example!
+**Feather Runtime**
+- Request Now has query method.  
+### Fixed
+**Feather Framework**
+- N/A  
+**Feather Runtime**
+- Now Puts The Correct `connection` HTTP headers  
+## Changed
+**Feather Framework**  
+- N/A
+**Feather Runtime**
+- Response's `to_string` method is renamed to `to_raw` for better clarity
+---
+
+## [0.3.0] - 2025-05-01
 ### Notes
 
 This update is a major update. it adds a Solid State management system on top of Feather called Context API.  

@@ -5,9 +5,9 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-const MIN_WORKER: usize = 4;
+const MIN_WORKER: usize = 6;
 const MAX_WORKER: usize = 60;
-const IDLE_TIMEOUT: Duration = Duration::from_secs(45);
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub struct TaskPool {
     sender: Sender<Job>,

@@ -1,6 +1,6 @@
 [package]
 name = "feather-runtime"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 authors = ["Bersis Sevimli"]
 description = "Web Server Runtime for Feather"
@@ -16,9 +16,9 @@ serde_json = { version = "1.0.140"}
 thiserror= "2.0.12"
 chrono = "0.4.40"
 log = "0.4.27"
-
+serde_urlencoded = "0.7.1"
 [dev-dependencies]
-env_logger = "0.11.8"
+simple_logger = "5.0.0"
 
 [lib]
 crate-type = ["lib"]
