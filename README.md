@@ -6,22 +6,19 @@
 ## Why Feather?
 
 - **Middleware-First Architecture**  
-  Everything is a middleware — route handlers, auth, logging, error handling — all composable and clean.
-
-- **Lightweight and Fast**  
-  Feather uses traditional threads instead of async, avoiding the overhead and complexity of Rust’s async model.
+  Everything is a middleware — route handlers, auth, logging — all composable and clean.  
 
 - **Easy State Management Using Context**  
-  In the recent version Feather implemented the Context API that allows it have easy state managment without the use of Extractors/Macros 
+  In the recent versions Feather, implemented the Context API that makes it very easy manage state without the use of Extractors/Macros 
 
 - **Developer Experience First**  
-  Feather’s API is minimal, ergonomic, and readable — no lifetimes, no `.await`, 
+  Feather’s API is minimal, ergonomic, and readable  
 
 - **Modular and Extensible**  
-  Build the framework you want with plug-and-play middleware, simple traits, and clear primitives.
+  Feather is designed to Modular, only select the features you need and use the. What you don't use you don't pay  
 
 - **Great Tooling Out Of the Box**  
-  With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) Creating API's and Web Servers Become a Breeze.
+  With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) Creating API's and Web Servers become a _Breeze_.  
 ---
 
 ## Getting Started
@@ -52,13 +49,13 @@ fn main() {
 
 ```
 
-That’s all — no async, no magic.
+That’s all — no async,
 
 ---
 
 ## Middleware in Feather
 
-Middleware is the heart of Feather. Write it as a closure, a struct, or chain them together:
+Middleware is intented to be heart of Feather. You may write it as a closure, a struct, or chain them together:
 
 ```rust,no_run
 use feather::{App, AppContext, Request, Response};
@@ -93,7 +90,8 @@ fn main() {
 ```
 ---
 ## State Management using the Context API
-Feather's new Context API allows you to manage application-wide state without extractors or macros. Here's an example:
+Feather's new Context API allows you to manage application-wide state without extractors or macros.  
+As an example:
 ```rust,no_run
 use feather::{App, AppContext, MiddlewareResult, Response, Request};
 
@@ -125,7 +123,7 @@ Context Is more useful when combined with Database/File Accesses
 
 ## Built-in JWT Authentication
 
-Feather has native JWT middleware activated using a cargo feature `jwt`:
+Feather has native JWT module activated using a cargo feature `jwt`:
 ```toml
 [dependencies]
 feather = { version = "0.3.1", features = ["jwt"] }
@@ -147,21 +145,21 @@ fn main() {
     app.listen("127.0.0.1:8080")
 }
 ```
-No need to reach out for 3rd Party Crates Feather Got you Covered!
+
 ---
 
 ## Goals
 
-- Be the simplest Rust web framework to get started with
-- Be modular and easy to extend
-- Focus on DX without sacrificing Rust's safety and performance
+- Being the simplest Rust web framework to get started with
+- Being modular and easy to extend
+- Focusing on DX without sacrificing Rust's safety and performance
 
 ---
 
 ## Contributing
 
 PRs welcome!  
-If you’ve got ideas or bugs, [open an issue](https://github.com/your_repo_link/issues) or submit a pull request.
+If you’ve got ideas or bugs, please [open an issue]([https://github.com/BersisSe/feather/issues) or submit a pull request.  
 
 ```bash
 # Getting started with dev
@@ -179,10 +177,7 @@ Feather is MIT licensed. See [LICENSE](./LICENSE).
 ---
 
 ## Acknowledgments
-
 Feather is inspired by [Express.js](https://expressjs.com) and exists to bring that same productivity to Rust.
-
-Thanks to the Rust community for the incredible ecosystem this project builds on.
 
 ---
 
@@ -191,6 +186,6 @@ Thanks to the Rust community for the incredible ecosystem this project builds on
 If you like Feather:
 - ⭐ Star it on [GitHub](https://github.com/BersisSe/feather)
 - Share it on Reddit, HN, or Discord
-- Build something and show us!
+- Build something and show up!
 
 ---
