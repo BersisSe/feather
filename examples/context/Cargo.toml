@@ -1,0 +1,10 @@
+[package]
+name = "context"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+feather = { workspace = true, features = ["json"] }
+rusqlite = { workspace = true }
+serde_json = { workspace = true }

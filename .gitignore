@@ -1,4 +1,5 @@
-/target
-/bin
-/public
-/feather-runtime/target
+**/target
+**/Cargo.lock
+!benches/**/Cargo.lock
+.vscode
+.idea
