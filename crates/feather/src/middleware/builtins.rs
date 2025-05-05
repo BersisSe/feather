@@ -4,7 +4,7 @@ use super::common::{Middleware, MiddlewareResult};
 use feather_runtime::http::{Request, Response};
 use std::{
     fs::{self, File},
-    io::Read,
+    io::{self, Read},
     path::Path,
 };
 
@@ -59,6 +59,42 @@ impl ServeStatic {
     pub const fn new(directory: String) -> Self {
         Self(directory)
     }
+
+    fn handle_io_error(&self, e: io::Error, path: &Path, response: &mut Response) {
+        let status_code = match e.kind() {
+            io::ErrorKind::PermissionDenied => 403,
+            io::ErrorKind::NotFound => 404,
+            _ => 500, // Internal Server Error for other IO issues
+        };
+
+        eprintln!(
+            "ServeStatic: Error accessing path {:?} (Base: {}): {} - Responding with {}",
+            path, &self.0, e, status_code
+        );
+
+        response.status(status_code);
+        match status_code {
+           404 => response.send_text("404 Not Found"),
+           403 => response.send_text("403 Forbidden"),
+           _ => response.send_text("500 Internal Server Error"),
+        };
+    }
+
+    fn guess_content_type(path: &Path) -> &'static str {
+        match path.extension().and_then(|ext| ext.to_str()) {
+            Some("html") | Some("htm") => "text/html; charset=utf-8",
+            Some("css") => "text/css; charset=utf-8",
+            Some("js") => "application/javascript; charset=utf-8",
+            Some("json") => "application/json",
+            Some("png") => "image/png",
+            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("gif") => "image/gif",
+            Some("svg") => "image/svg+xml",
+            Some("ico") => "image/x-icon",
+            Some("txt") => "text/plain; charset=utf-8",
+            _ => "application/octet-stream", // Default binary type
+        }
+    }
 }
 
 impl Middleware for ServeStatic {
@@ -68,51 +104,78 @@ impl Middleware for ServeStatic {
         response: &mut Response,
         _: &mut AppContext,
     ) -> MiddlewareResult {
-        let wanted_path = request.uri.to_string();
-        let dir = fs::read_dir(Path::new(self.0.as_str()))
-            .expect(format!("Error While Reading the {}", self.0).as_str());
-        dir.for_each(|entry| {
-            let entry = entry.unwrap();
-            let enter_path = entry.path();
-            let mut file = File::open(entry.path()).unwrap();
-            let ext = enter_path.extension().unwrap();
-            match ext.to_str().unwrap() {
-                "png" => {
-                    if wanted_path.contains(entry.file_name().into_string().unwrap().as_str()) {
-                        response.add_header("Content-Type", "image/png");
-                        let mut buf = Vec::with_capacity(4096);
-                        file.read(&mut buf).unwrap();
-                        response.send_bytes(buf);
-                    }
-                }
-                "jpg" => {
-                    if wanted_path.contains(entry.file_name().into_string().unwrap().as_str()) {
-                        response.add_header("Content-Type", "image/jpg");
-                        let mut buf = Vec::with_capacity(1024);
-                        file.read_to_end(&mut buf).unwrap();
-                        response.send_bytes(buf);
-                    }
-                }
-                "jpeg" => {
-                    if wanted_path.contains(entry.file_name().into_string().unwrap().as_str()) {
-                        response.add_header("Content-Type", "image/jpeg");
-                        let mut buf = Vec::with_capacity(1024);
-                        file.read_to_end(&mut buf).unwrap();
-                        response.send_bytes(buf);
-                    }
-                }
-                "html" => {
-                    if wanted_path.contains(entry.file_name().into_string().unwrap().as_str()) {
-                        response.add_header("Content-Type", "text/html");
-                        let mut buf = Vec::with_capacity(1024);
-                        file.read_to_end(&mut buf).unwrap();
-                        response.send_bytes(buf);
-                    }
-                }
+        let requested_path = request.uri.path().trim_start_matches('/');
+        let base_dir = Path::new(&self.0);
+        let mut target_path = base_dir.join(requested_path);
 
-                _ => unreachable!(),
+        match target_path.canonicalize() {
+            Ok(canonical_path) => {
+                // Need to canonicalize base_dir too for reliable comparison
+                match base_dir.canonicalize() {
+                    Ok(canonical_base) => {
+                        if !canonical_path.starts_with(&canonical_base) {
+                            // Path tried to escape the base directory!
+                            eprintln!(
+                                "ServeStatic: Forbidden path traversal attempt: Requested '{}', Resolved '{}' outside base '{}'",
+                                requested_path, canonical_path.display(), canonical_base.display()
+                            );
+                            response.status(403);
+                            response.send_text("403 Forbidden");
+                            return MiddlewareResult::Next;
+                        }
+                        target_path = canonical_path;
+                    }
+                    Err(e) => {
+                        // Failed to canonicalize base directory - major configuration issue
+                        self.handle_io_error(e, base_dir, response);
+                        return MiddlewareResult::Next;
+                    }
+                }
             }
-        });
+            Err(e) => {
+                self.handle_io_error(e, &target_path, response);
+                return MiddlewareResult::Next;
+            }
+        }
+
+        match fs::metadata(&target_path) {
+            Ok(metadata) => {
+                if metadata.is_file() {
+                    match File::open(&target_path) {
+                        Ok(mut file) => {
+                            let mut buffer = Vec::new();
+                            match file.read_to_end(&mut buffer) {
+                                Ok(_) => {
+                                    let content_type = Self::guess_content_type(&target_path);
+                                    response.add_header("Content-Type", content_type);
+                                    response.add_header("Content-Length", &buffer.len().to_string());
+                                    response.send_bytes(buffer);
+                                }
+                                Err(e) => {
+                                    self.handle_io_error(e, &target_path, response);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            self.handle_io_error(e, &target_path, response);
+                        }
+                    }
+                } else if metadata.is_dir() {
+                    eprintln!("ServeStatic: Access denied for directory: {:?}", target_path);
+                    response.status(403);
+                    response.send_text("403 Forbidden");
+                } else {
+                    eprintln!("ServeStatic: Path is not a file or directory: {:?}", target_path);
+                    response.status(404);
+                    response.send_text("404 Not Found");
+                }
+            }
+            Err(e) => {
+                // Error getting metadata (likely Not Found or Permission Denied)
+                self.handle_io_error(e, &target_path, response);
+            }
+        }
+
         MiddlewareResult::Next
     }
 }
