@@ -12,12 +12,7 @@ use std::{
 pub struct Logger;
 
 impl Middleware for Logger {
-    fn handle(
-        &self,
-        request: &mut Request,
-        _: &mut Response,
-        _: &mut AppContext,
-    ) -> MiddlewareResult {
+    fn handle(&self, request: &mut Request, _: &mut Response, _: &mut AppContext) -> MiddlewareResult {
         println!("Request: {request}");
         MiddlewareResult::Next
     }
@@ -37,12 +32,7 @@ impl Cors {
 }
 
 impl Middleware for Cors {
-    fn handle(
-        &self,
-        _: &mut Request,
-        response: &mut Response,
-        _: &mut AppContext,
-    ) -> MiddlewareResult {
+    fn handle(&self, _: &mut Request, response: &mut Response, _: &mut AppContext) -> MiddlewareResult {
         response.add_header(
             "Access-Control-Allow-Origin",
             self.0.as_deref().unwrap_or("*"),
