@@ -1,0 +1,24 @@
+[package]
+name = "feather"
+version = "0.3.2"
+edition = "2024"
+repository = "https://github.com/BersisSe/feather"
+description = "Feather: A minimal HTTP framework for Rust"
+authors = ["Bersis Sevimli"]
+license = "MIT"
+readme = "../../README.md"
+keywords = ["http", "web", "framework", "minimal", "rust"]
+categories = ["web-programming", "network-programming"]
+
+[dependencies]
+anymap = { workspace = true }
+chrono = { workspace = true }
+feather-runtime = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+
+[features]
+default = ["json", "jwt"]
+json = ["dep:serde", "dep:serde_json"]
+jwt = ["dep:jsonwebtoken"]
