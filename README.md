@@ -64,7 +64,7 @@ use feather::middleware::{Middleware, MiddlewareResult};
 // Implementors of the Middleware trait are middleware that can be used in a Feather app.
 struct Custom;
 impl Middleware for Custom {
-    fn handle(&self,request: &mut Request,_response: &mut Response,_ctx: &mut AppContex) -> MiddlewareResult {
+    fn handle(&self,request: &mut Request,_response: &mut Response,_ctx: &mut AppContext) -> MiddlewareResult {
       println!("Now running some custom middleware (struct Custom)!");
       println!("And there's a request with path: {:?}", request.uri);
       MiddlewareResult::Next
