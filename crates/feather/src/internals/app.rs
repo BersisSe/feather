@@ -92,7 +92,7 @@ impl App {
         // Run route-specific middleware
         if let Some(route) = routes
             .iter()
-            .find(|r| r.method == request.method && r.path == request.uri.to_string())
+            .find(|r| r.method == request.method && r.path == request.uri.path())
         {
             route
                 .middleware
