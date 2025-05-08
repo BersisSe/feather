@@ -35,18 +35,19 @@ feather = "0.3.1"
 ## Quick Example
 
 ```rust,no_run
-use feather::{App, AppContext, MiddlewareResult,Request, Response};
-
+use feather::middleware::builtins;
+use feather::{App, AppContext, next};
+use feather::{Request, Response};
 fn main() {
     let mut app = App::new();
-    app.get("/",|_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
-            res.send_text("Hello, world!");
-            MiddlewareResult::Next
+    app.get("/", |_request: &mut Request, response: &mut Response, _ctx: &mut AppContext| {
+        response.send_text("Hello, world!");
+        next!()
     });
-
-    app.listen("127.0.0.1:3000");
+    
+    app.use_middleware(builtins::Logger);
+    app.listen("127.0.0.1:5050");
 }
-
 ```
 
 That’s all — no async.
@@ -58,7 +59,7 @@ That’s all — no async.
 Middleware is intented to be the heart of Feather. You may write it as a closure, a struct, or chain them together:
 
 ```rust,no_run
-use feather::{App, AppContext, Request, Response};
+use feather::{App, AppContext, Request, Response,next,Outcome};
 use feather::middleware::builtins;
 use feather::middleware::{Middleware, MiddlewareResult};
 
@@ -66,10 +67,10 @@ use feather::middleware::{Middleware, MiddlewareResult};
 struct Custom;
 
 impl Middleware for Custom {
-    fn handle(&self, request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> MiddlewareResult {
+    fn handle(&self, request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> Outcome {
       println!("Now running some custom middleware (struct Custom)!");
       println!("And there's a request with path: {:?}", request.uri);
-      MiddlewareResult::Next
+      next!()
     }
 }
 
@@ -79,18 +80,17 @@ fn main() {
     app.use_middleware(Custom);
     app.use_middleware(|_req: &mut Request, _res: &mut Response, _ctx: &mut AppContext| {
         println!("Now running some custom middleware (closure)!");
-        MiddlewareResult::Next
+        next!()
     });
 
     app.get("/",|_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
         res.send_text("Hello, world!");
-        MiddlewareResult::Next
+        next!()
     });
 
-    app.listen("127.0.0.1:3000");
+    app.listen("127.0.0.1:5050");
 }
 ```
-
 ---
 
 ## State Management using the Context API
@@ -100,31 +100,32 @@ Feather's new Context API allows you to manage application-wide state without ex
 As an example:
 
 ```rust,no_run
-use feather::{App, AppContext, MiddlewareResult, Response, Request};
-
+use feather::{next, App, AppContext, Request, Response};
+// Create a couter struct to hold the state
+#[derive(Debug)]
 struct Counter {
     pub count: i32,
 }
-
 fn main() {
     let mut app = App::new();
     let counter = Counter { count: 0 };
     app.context().set_state(counter);
 
-    app.get("/", move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
-        let counter: &mut Counter = ctx.get_mut_state::<Counter>().unwrap();
-        counter.count += 1;
-        res.send_text(format!("Counted! {}", counter.count));
-        MiddlewareResult::Next
+    app.get("/",move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
+      let counter: &mut Counter = ctx.get_mut_state::<Counter>().unwrap();
+      counter.count += 1;
+      res.send_text(format!("Counted! {}", counter.count));
+      next!()
     });
-    app.get("/count", move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
-        let counter = ctx.get_state::<Counter>().unwrap();
-        res.send_text(counter.count.to_string());
-        MiddlewareResult::Next
+    // Lastly add a route to get the current count
+    app.get("/count",move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
+      let counter = ctx.get_state::<Counter>().unwrap();
+      res.send_text(counter.count.to_string());
+      next!()
     });
-
     app.listen("127.0.0.1:5050");
 }
+
 ```
 
 Context is especially useful when needing to access databases and files.
@@ -140,14 +141,14 @@ feather = { version = "0.3.1", features = ["jwt"] }
 
 ```rust,no_run
 use feather::jwt::{generate_jwt, with_jwt_auth};
-use feather::{App, AppContext};
+use feather::{App, AppContext,next};
 
 fn main() {
     let mut app = App::new();
     app.get("/auth",with_jwt_auth("secretcode", |_req, res,_ctx, claim| {
         println!("Claim: {:?}", claim);
         res.send_text("Hello, JWT!");
-        feather::MiddlewareResult::Next
+        next!()
       }),
     );
     // Check the JWT Example for a more complete version!

@@ -22,7 +22,7 @@ pub struct Response {
 
 impl Response {
     /// Sets the StatusCode of the response and Returns a Muteable Reference to the Response so you can things like
-    /// ```rust
+    /// ```rust,ignore
     /// res.status(200).send_text("eyo");
     /// ```
     /// The StatusCode is a 3-digit integer that indicates the result of the request.    
