@@ -1,4 +1,4 @@
-use crate::{AppContext, MiddlewareResult, Request, Response, middleware::Middleware}; // adapt to your framework structure
+use crate::{middleware::Middleware, next, AppContext, Outcome, Request, Response};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +8,7 @@ pub struct Claims {
     pub exp: usize,
 }
 
+
 /// Used to protect the route with JWT authentication
 /// The middleware will check if the token is valid and not expired
 /// If the token is valid, it will call the handler function
@@ -15,25 +16,25 @@ pub struct Claims {
 /// The handler function will receive the request, response and the claims
 pub fn with_jwt_auth<F>(secret: &'static str, handler: F) -> impl Middleware
 where
-    F: Fn(&mut Request, &mut Response, &mut AppContext, Claims) -> MiddlewareResult,
+    F: Fn(&mut Request, &mut Response, &mut AppContext, Claims) -> Outcome,
 {
-    move |req: &mut Request, res: &mut Response, ctx: &mut AppContext| -> MiddlewareResult {
+    move |req: &mut Request, res: &mut Response, ctx: &mut AppContext| -> Outcome {
         let Some(auth_header) = req.headers.get("Authorization") else {
-            res.status(401);
+            res.set_status(401);
             res.send_text("Missing Authorization header");
-            return MiddlewareResult::NextRoute;
+            return next!();
         };
 
         let Ok(auth_str) = auth_header.to_str() else {
-            res.status(400);
+            res.set_status(400);
             res.send_text("Invalid header format");
-            return MiddlewareResult::NextRoute;
+            return next!();
         };
 
         if !auth_str.starts_with("Bearer ") {
-            res.status(400);
+            res.set_status(400);
             res.send_text("Expected Bearer token");
-            return MiddlewareResult::NextRoute;
+            return next!();
         }
 
         let token = &auth_str[7..];
@@ -43,11 +44,11 @@ where
             &DecodingKey::from_secret(secret.as_bytes()),
             &Validation::default(),
         ) {
-            Ok(data) => handler(req, res, ctx, data.claims),
+            Ok(data) => Ok(handler(req, res, ctx, data.claims)?),
             Err(_) => {
-                res.status(401);
+                res.set_status(401);
                 res.send_text("Invalid or expired token");
-                MiddlewareResult::NextRoute
+                next!()
             }
         }
     }

@@ -26,7 +26,7 @@ impl Response {
     /// res.status(200).send_text("eyo");
     /// ```
     /// The StatusCode is a 3-digit integer that indicates the result of the request.    
-    pub fn status(&mut self, status: u16) -> &mut Response {
+    pub fn set_status(&mut self, status: u16) -> &mut Response {
         self.status = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         self
     }

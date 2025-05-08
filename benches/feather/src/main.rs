@@ -1,4 +1,4 @@
-use feather::{App, AppContext, MiddlewareResult, Request, Response};
+use feather::{App, AppContext, MiddlewareResult, Request, Response,};
 
 fn main() {
     let mut app = App::new();

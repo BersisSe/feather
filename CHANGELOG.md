@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
+## [0.4.0] - 2025-05-08
+
+### Notes
+This update is a major update. it solves the Error Handling Issue in Feather. With the new Error-Pipeline System.  
+
+Now Every middleware Returns a `Outcome`  
+This allows you to handle errors using the `?` operator. That will just pass the error to the next middleware.  
+If there is no Error handler in the pipeline it will be passed to the default error handler.  
+Default error handler will log the message and return a 500 Internal Server Error with the error message.
+
+### Added
+**Feather Framework**
+- New Error-Pipeline System to handle errors in middlewares.  
+- New `set_handler` method to set a custom error handler for the app.  
+- New `next()!` macro for better readability and less boilerplate code.  
+- New `Error-pipelin` Example to show how to use the new error handling system.
+**Feather Runtime**
+- N/A
+## Fixed
+**Feather Framework**  
+- `ServeStatic` middleware's Security problems and use excessive of `unwrap`&`expect` has been fixed.  
+- The non-existing route now returns a 404 not found error instead of just freazing the client.  
+## Changed
+**Feather Framework**  
+- Now every middleware returns a `Result<MiddlewareResult, Error>`(We Call it `Outcome` for simplicty) instead of `MiddlewareResult`.  
+- File Structure has been changed for better scalability.  
+- Middleware example has been rewritten to match the latest changes.
+**Feather Runtime**  
+- Response's `status` method's name is changed to `set_status` for better clarity.  
+---
+
 ## [0.3.2] - 2025-05-04
 
 ### Notes

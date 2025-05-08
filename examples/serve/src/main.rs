@@ -1,5 +1,5 @@
 use feather::middleware::builtins::ServeStatic;
-use feather::{App, AppContext, MiddlewareResult, Request, Response};
+use feather::{next, App, AppContext, Request, Response};
 // To Use this example you need to have a 'public' directory with some static files in it
 // in the same directory as this file.
 // This example shows how to use the ServeStatic middleware to serve static files from a directory.
@@ -11,7 +11,7 @@ fn main() {
         "/",
         |_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
             res.send_text("Hello, world!");
-            MiddlewareResult::Next
+            next!()
         },
     );
     // Use the ServeStatic middleware to serve static files from the "public" directory

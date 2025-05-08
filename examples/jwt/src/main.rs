@@ -1,6 +1,6 @@
 // This example demonstrates how to use JWT authentication in a Feather application.
 use feather::jwt::{generate_jwt, with_jwt_auth};
-use feather::{App, AppContext};
+use feather::{next, App, AppContext};
 
 fn main() {
     // Create a new instance of App
@@ -15,7 +15,7 @@ fn main() {
             let token = generate_jwt(Some("Subject"), "secretcode").unwrap();
             res.send_text(format!("Token: {}", token));
             ctx.set_state(token);
-            feather::MiddlewareResult::Next
+            next!()
         },
     );
     // This route will be used to test the JWT authentication
@@ -30,7 +30,7 @@ fn main() {
             let token = _ctx.get_state::<String>();
             println!("Toke: {}", token.unwrap());
             res.send_text("Hello, JWT!");
-            feather::MiddlewareResult::Next
+            next!()
         }),
     );
     // Of course lets listen on port 8080

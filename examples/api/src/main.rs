@@ -1,4 +1,4 @@
-use feather::{App, AppContext, Request, Response};
+use feather::{App, AppContext, Request, Response,next};
 
 fn main() {
     // Lets Create a App instance named api
@@ -8,19 +8,19 @@ fn main() {
     api.get("/", get_handler);
     // Lets use a post handler to simulate a login
     // This will be called when a POST request is made to the "/auth" path
-    // The data will be parsed as JSON and returned as a response
+    // The data will be parsed as JSON and echoed back to the client
     api.post(
         "/auth",
         |req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
             let data = req.json().unwrap();
             println!("Received data: {:?}", data);
             res.send_json(data);
-            feather::MiddlewareResult::Next
+            next!()
         },
     );
     // We have to listen to the api instance to start the server
-    // This will start the server on port 8080
-    api.listen("127.0.0:8080");
+    // This will start the server on port 5050
+    api.listen("127.0.0.1:5050");
 }
 
 // Handler Can Also Be Functions Like this
@@ -29,7 +29,7 @@ fn get_handler(
     _req: &mut Request,
     res: &mut Response,
     _ctx: &mut AppContext,
-) -> feather::MiddlewareResult {
+) -> feather::Outcome {
     res.send_html("<h1>Hello I am an Feather Api</h1>");
-    feather::MiddlewareResult::Next
+    next!()
 }

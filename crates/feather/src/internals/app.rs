@@ -1,3 +1,4 @@
+use super::error_stack::ErrorHandler;
 use super::AppContext;
 use crate::middleware::Middleware;
 pub use feather_runtime::Method;
@@ -20,6 +21,7 @@ pub struct App {
     routes: Vec<Route>,
     middleware: Vec<Box<dyn Middleware>>,
     context: AppContext,
+    error_handler: Option<ErrorHandler>
 }
 
 macro_rules! route_methods {
@@ -41,6 +43,7 @@ impl App {
             routes: Vec::new(),
             middleware: Vec::new(),
             context: AppContext::new(),
+            error_handler: None
         }
     }
     /// Returns a Handle to the [AppContext] inside the App
@@ -48,6 +51,13 @@ impl App {
     pub fn context(&mut self) -> &mut AppContext {
         &mut self.context
     }
+    /// Set up the Error Handling Solution for that [App].  
+    /// If there are no Error Handler present by default,  
+    /// framework will Catch the error and print it to the `stderr` and return a `500` Status code response back to the client
+    pub fn set_error_handler(&mut self,handler: ErrorHandler){
+        self.error_handler = Some(handler)
+    }
+
     /// Add a route to the application.  
     /// Every Route Returns A MiddlewareResult to control the flow of your application.
     pub fn route<M: Middleware + 'static>(
@@ -83,23 +93,48 @@ impl App {
         routes: &[Route],
         global_middleware: &[Box<dyn Middleware>],
         mut context: &mut AppContext,
+        error_handler: &Option<ErrorHandler>
     ) -> Response {
         let mut response = Response::default();
         // Run global middleware
+        
         for middleware in global_middleware {
-            middleware.handle(&mut request, &mut response, &mut context);
+            match middleware.handle(&mut request, &mut response, &mut context) {
+                Ok(_) => {}
+                Err(e) => {
+                    if let Some(handler) = &error_handler {
+                        handler(e,&request,&mut response)
+                    }else{
+                        eprintln!("Unhandled Error caught in middlewares: {}",e);
+                        response.set_status(500).send_text("Internal Server Error!");
+                        return response;
+                    }
+                }
+            }
         }
         // Run route-specific middleware
         if let Some(route) = routes
             .iter()
-            .find(|r| r.method == request.method && r.path == request.uri.to_string())
+            .find(|r| r.method == request.method && r.path == request.uri.path())
         {
-            route
-                .middleware
-                .handle(request, &mut response, &mut context);
+            match route.middleware.handle(request, &mut response, &mut context){
+                Ok(_) => {}
+                Err(e) => {
+                    if let Some(handler) =  &error_handler{
+                        handler(e,&request,&mut response)
+                    }else{
+                        eprintln!("Unhandled Error caught in Route Middlewares : {}", e);
+                        response.set_status(500).send_text("Internal Server Error");
+                    }
+                }
+            }
+        }else{
+            response.set_status(404).send_text("404 Not Found");
         }
+
         response
     }
+
 
     /// Start the application and listen for incoming requests on the given address.
     /// Blocks the current thread until the server is stopped.
@@ -118,12 +153,14 @@ impl App {
         let routes = &self.routes;
         let middleware = &self.middleware;
         let mut ctx = &mut self.context;
+        let error_handle = &self.error_handler;
         server
             .incoming()
             .for_each(move |mut req| {
-                let response = Self::run_middleware(&mut req, &routes, &middleware, &mut ctx);
+                let response = Self::run_middleware(&mut req, &routes, &middleware, &mut ctx,error_handle);
                 return response;
             })
             .unwrap();
     }
 }
+

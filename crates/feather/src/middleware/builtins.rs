@@ -1,6 +1,6 @@
-use crate::internals::AppContext;
+use crate::{internals::AppContext, next, Outcome};
+use super::common::Middleware;
 
-use super::common::{Middleware, MiddlewareResult};
 use feather_runtime::http::{Request, Response};
 use std::{
     fs::{self, File},
@@ -12,9 +12,9 @@ use std::{
 pub struct Logger;
 
 impl Middleware for Logger {
-    fn handle(&self, request: &mut Request, _: &mut Response, _: &mut AppContext) -> MiddlewareResult {
+    fn handle(&self, request: &mut Request, _: &mut Response, _: &mut AppContext) -> Outcome {
         println!("Request: {request}");
-        MiddlewareResult::Next
+        next!()
     }
 }
 
@@ -32,12 +32,12 @@ impl Cors {
 }
 
 impl Middleware for Cors {
-    fn handle(&self, _: &mut Request, response: &mut Response, _: &mut AppContext) -> MiddlewareResult {
+    fn handle(&self, _: &mut Request, response: &mut Response, _: &mut AppContext) -> Outcome {
         response.add_header(
             "Access-Control-Allow-Origin",
             self.0.as_deref().unwrap_or("*"),
         );
-        MiddlewareResult::Next
+        next!()
     }
 }
 
@@ -62,7 +62,7 @@ impl ServeStatic {
             path, &self.0, e, status_code
         );
 
-        response.status(status_code);
+        response.set_status(status_code);
         match status_code {
            404 => response.send_text("404 Not Found"),
            403 => response.send_text("403 Forbidden"),
@@ -93,7 +93,7 @@ impl Middleware for ServeStatic {
         request: &mut Request,
         response: &mut Response,
         _: &mut AppContext,
-    ) -> MiddlewareResult {
+    ) -> Outcome {
         let requested_path = request.uri.path().trim_start_matches('/');
         let base_dir = Path::new(&self.0);
         let mut target_path = base_dir.join(requested_path);
@@ -109,22 +109,22 @@ impl Middleware for ServeStatic {
                                 "ServeStatic: Forbidden path traversal attempt: Requested '{}', Resolved '{}' outside base '{}'",
                                 requested_path, canonical_path.display(), canonical_base.display()
                             );
-                            response.status(403);
+                            response.set_status(403);
                             response.send_text("403 Forbidden");
-                            return MiddlewareResult::Next;
+                            return next!()
                         }
                         target_path = canonical_path;
                     }
                     Err(e) => {
                         // Failed to canonicalize base directory - major configuration issue
                         self.handle_io_error(e, base_dir, response);
-                        return MiddlewareResult::Next;
+                        return next!()
                     }
                 }
             }
             Err(e) => {
                 self.handle_io_error(e, &target_path, response);
-                return MiddlewareResult::Next;
+                return next!()
             }
         }
 
@@ -152,11 +152,11 @@ impl Middleware for ServeStatic {
                     }
                 } else if metadata.is_dir() {
                     eprintln!("ServeStatic: Access denied for directory: {:?}", target_path);
-                    response.status(403);
+                    response.set_status(403);
                     response.send_text("403 Forbidden");
                 } else {
                     eprintln!("ServeStatic: Path is not a file or directory: {:?}", target_path);
-                    response.status(404);
+                    response.set_status(404);
                     response.send_text("404 Not Found");
                 }
             }
@@ -166,6 +166,6 @@ impl Middleware for ServeStatic {
             }
         }
 
-        MiddlewareResult::Next
+        next!()
     }
 }

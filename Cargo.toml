@@ -4,18 +4,18 @@ members = ["crates/*", "examples/*"]
 exclude = ["benches/axum", "benches/feather"]
 
 [workspace.dependencies]
-feather = { version = "~0.3", default-features = false }
-feather-runtime = { version = "~0.2", default-features = false }
-http = { version = "1", default-features = false }
+feather = { version = "~0.4",path = "./crates/feather", default-features = false }
+feather-runtime = { version = "~0.2", path = "./crates/feather-runtime", default-features = false }
+http = { version = "1", default-features = false, features = ["std"]}
 httparse = { version = "1", default-features = false }
 serde = { version = "1", default-features = false }
-serde_json = { version = "1", default-features = false }
-chrono = { version = "~0.4", default-features = false }
+serde_json = { version = "1", default-features = false, features = ["std"]}
+chrono = { version = "0.4.41", default-features = false, features = ["now"]}
 bytes = { version = "1", default-features = false }
 log = { version = "~0.4", default-features = false }
 serde_urlencoded = { version = "~0.7", default-features = false }
 thiserror = { version = "2", default-features = false }
-crossbeam = { version = "~0.8", default-features = false }
+crossbeam = { version = "~0.8", default-features = false ,features = ["std"]}
 anymap = { version = "~0.12", default-features = false }
 jsonwebtoken = { version = "9", default-features = false }
 rusqlite = { version = "~0.35", default-features = false }
