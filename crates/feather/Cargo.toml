@@ -6,7 +6,7 @@ repository = "https://github.com/BersisSe/feather"
 description = "Feather: A minimal HTTP framework for Rust"
 authors = ["Bersis Sevimli"]
 license = "MIT"
-readme = "../../README.md"
+readme = "README.md"
 keywords = ["http", "web", "framework", "minimal", "rust"]
 categories = ["web-programming", "network-programming"]
 

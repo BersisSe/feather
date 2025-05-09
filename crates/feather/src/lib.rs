@@ -1,8 +1,6 @@
-#![doc = include_str!("../../../README.md")]
+#![doc = include_str!("../README.md")]
 
-/// The [`Middleware`] trait and some common middleware primitives.
 pub mod middleware;
-
 pub mod internals;
 #[cfg(feature = "jwt")]
 pub mod jwt;
