@@ -27,7 +27,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "0.3.1"
+feather = "0.4.1"
 ```
 
 ---
