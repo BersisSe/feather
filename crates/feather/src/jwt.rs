@@ -8,7 +8,6 @@ pub struct Claims {
     pub exp: usize,
 }
 
-
 /// Used to protect the route with JWT authentication
 /// The middleware will check if the token is valid and not expired
 /// If the token is valid, it will call the handler function
