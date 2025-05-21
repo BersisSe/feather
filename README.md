@@ -1,6 +1,8 @@
-# 🪶 Feather
+# 🪶 Feather Web Socket Branch
+# Current State: Non Working
 
-## **Feather** is a lightweight, DX-first web framework for Rust — inspired by the simplicity of Express.js, but designed for Rust’s performance and safety.
+### Web Socket Feature branch Still Very experimantal!
+
 
 ## Why Feather?
 
