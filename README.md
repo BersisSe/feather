@@ -5,19 +5,21 @@
 ## Why Feather?
 
 - **Middleware-First Architecture**  
-  Everything is a middleware — route handlers, auth, logging — all composable and clean
+  Everything is a middleware even if they are not a middleware they produce a middleware in the end.  
 
 - **Easy State Management Using Context**  
-  Recently implemented the Context API that makes it very easy to manage state without the use of Extractors/Macros
+  Recently implemented the Context API that makes it very easy to manage state without the use of Extractors/Macros.  
 
-- **Developer Experience First**  
-  Feather’s API is minimal, ergonomic, and readable
-
-- **Modular and Extensible**  
-  Feather is designed to be Modular. Select only the features you need and use. What you don't use you don't pay for.
-
+- **Feel of Async Without Async**  
+  Feather is Multithreaded by default running on **Feather-Runtime**.
+  
 - **Great Tooling Out Of the Box**  
   With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) creating API's and Web Servers becomes a _Breeze_.
+
+## How it works behind the scenes:  
+Every Request given a thread from the Server's threadpool and that thread is responsible for returning the a response to that request.  
+So you can Run long running task's on another thread in the middlewares but the response can only be returned from the middleware the request is accepted on.  
+If you want to go deeper take look at [Feather-Runtime](./crates/feather-runtime)  
 
 ---
 
