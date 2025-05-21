@@ -1,40 +1,38 @@
+use tungstenite::{accept, WebSocket};
 use crate::http::{Request, Response, parse};
 use crate::utils::worker::{Job, TaskPool};
 use crate::utils::{Connection, Message, Queue};
 use std::io::{self, BufReader, BufWriter, Read, Result as IoResult, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-
-#[derive(Clone)]
-pub struct ServerConfig {
-    pub address: String,
-}
-
+use super::websocket;
+use parking_lot::Mutex;
 pub struct Server {
-    listener: TcpListener,
     messages: Arc<Queue<Message>>,
     shutdown_flag: Arc<AtomicBool>,
+    ws_routes: Arc<Mutex<Vec<websocket::WSRoute>>>
 }
 
 impl Server {
-    /// Creates a new `Server` instance.
-    /// Using This method will instantly start the server.
-    /// Server Will Listen for connections until its dropped.
-    pub fn new(config: ServerConfig) -> Self {
-        let listener = TcpListener::bind(&config.address).expect("Failed to bind to address");
+    /// Creates a new `Server` instance.  
+    /// Server Will need to started via `start` method.  
+    /// Server Will Listen for connections until its dropped.  
+    pub fn new() -> Self {
         let messages = Queue::with_capacity(8);
         let shutdown_flag = Arc::new(AtomicBool::new(false));
 
         let server = Self {
-            listener,
             messages: Arc::new(messages),
             shutdown_flag,
+            ws_routes: Arc::new(Mutex::new(Vec::new()))
         };
-        server.start();
+
         server
     }
+    
+
     /// Trigger the shutdown flag to stop the server.
     /// This method will unblock the thread that is waiting for a message.
     /// It will also stop the acceptor thread.
@@ -48,10 +46,11 @@ impl Server {
     /// Starts Acceptor thread.
     /// This thread will accept incoming connections and push them to the queue.
     /// The thread will run until the server is shutdown.
-    fn start(&self) {
+    pub fn start(&self, addr:impl ToSocketAddrs) {
         let inside_closer = self.shutdown_flag.clone();
         let inside_queue = self.messages.clone();
-        let server = self.listener.try_clone().unwrap();
+        let ws_routes = self.ws_routes.clone();
+        let server = TcpListener::bind(addr).expect("Failed to bind to address");
 
         // Start the Acceptor thread
         thread::spawn(move || {
@@ -62,10 +61,41 @@ impl Server {
                 match server.accept() {
                     Ok((stream, _)) => {
                         let inside_queue = inside_queue.clone();
-                        tasks.add_task(Job::Task(Box::new(move || {
+                        let ws_routes = ws_routes.clone();
+                        tasks.add_task(Job::Task(Box::new( move || {
+                            // Peek at the first 1024 bytes to check for WebSocket upgrade
+                            let mut peek_buf = [0u8; 1024];
+                            let n = match stream.peek(&mut peek_buf) {
+                                Ok(n) => n,
+                                Err(e) => {
+                                    log::error!("Error peeking stream: {}", e);
+                                    return;
+                                }
+                            };
+                            let req_str = String::from_utf8_lossy(&peek_buf[..n]);
+                            let is_ws = ws_routes.lock().iter().any(|route| {
+                                req_str.contains("Upgrade: websocket") && req_str.contains(route.path)
+                            });
+                            if is_ws {
+                                // Let tungstenite handle the handshake
+                                for route in ws_routes.lock().iter_mut() {
+                                    if req_str.contains("Upgrade: websocket") && req_str.contains(route.path) {
+                                        match accept(stream) {
+                                            Ok(ws) => {
+                                                log::debug!("WebSocket connection accepted for route: {}", route.path);
+                                                (route.handler)(ws);
+                                            }
+                                            Err(e) => {
+                                                log::error!("WebSocket handshake failed: {}", e);
+                                            }
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
+                            // Not a WebSocket, proceed with normal HTTP parsing
                             let mut buf_reader = BufReader::with_capacity(4096, &stream);
                             let mut buffer = [0u8; 4096];
-
                             loop {
                                 buffer.fill(0);
                                 match buf_reader.read(&mut buffer) {
@@ -108,6 +138,16 @@ impl Server {
             log::debug!("Acceptor thread shutting down");
         });
     }
+    /// Starts receiving messages from the server but only accepts the selected route as a WebSocket  
+    /// After the WebSocket Handshake succeeds it just returns the WebSocket Object to the caller
+    pub fn attach_websocket<F>(&mut self, path: &'static str,handler: F)
+    where F: FnMut(WebSocket<TcpStream>) + 'static + Send + Sync
+    {
+        self.ws_routes.lock().push(websocket::WSRoute { 
+            path, 
+            handler: Box::new(handler) 
+        });
+    }
 
     /// Blocks until a message is available to receive.
     /// If the queue is empty, it will wait until a message is available.
@@ -119,9 +159,7 @@ impl Server {
             None => Err(io::Error::new(io::ErrorKind::Other, "No message available")),
         }
     }
-    pub fn address(&self) -> String {
-        self.listener.local_addr().unwrap().to_string()
-    }
+    
     /// Unblocks the thread that is waiting for a message.
     /// this medhod allows graceful shutdown of the server.
     pub fn unblock(&self) {

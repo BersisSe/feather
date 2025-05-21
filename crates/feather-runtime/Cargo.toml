@@ -3,7 +3,7 @@ name = "feather-runtime"
 version = "0.2.1"
 edition = "2024"
 authors = ["Bersis Sevimli"]
-description = "Web Server Runtime for Feather"
+description = "HTTP Runtime for Feather"
 license = "MIT"
 
 [dependencies]
@@ -17,7 +17,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
 thiserror = { workspace = true }
-
+tungstenite = { workspace = true }
+parking_lot = { workspace = true }
 [dev-dependencies]
 simple_logger = "5.0.0"
 

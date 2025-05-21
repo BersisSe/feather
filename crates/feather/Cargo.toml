@@ -18,9 +18,9 @@ feather-runtime = { workspace = true }
 jsonwebtoken = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
-
+uuid ={ workspace = true }
 [features]
-default = ["json", "jwt"]
+default = ["json", "jwt","websocket"]
 json = ["dep:serde", "dep:serde_json"]
 jwt = ["dep:jsonwebtoken"]
 websocket = []

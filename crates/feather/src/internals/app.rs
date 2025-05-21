@@ -1,12 +1,15 @@
 use super::error_stack::ErrorHandler;
+use super::websocket::Socket;
 use super::AppContext;
 use crate::middleware::Middleware;
+
 pub use feather_runtime::Method;
 use feather_runtime::http::{Request, Response};
 use feather_runtime::server::server::Server;
-use feather_runtime::server::server::ServerConfig;
 use std::borrow::Cow;
 use std::{fmt::Display, net::ToSocketAddrs};
+use super::websocket::WsClient;
+
 
 /// A route in the application.  
 pub struct Route {
@@ -15,13 +18,14 @@ pub struct Route {
     middleware: Box<dyn Middleware>,
 }
 
-/// A Feather application.  
 
+/// A Feather application.  
 pub struct App {
     routes: Vec<Route>,
     middleware: Vec<Box<dyn Middleware>>,
     context: AppContext,
-    error_handler: Option<ErrorHandler>
+    error_handler: Option<ErrorHandler>,
+    server: Server,
 }
 
 macro_rules! route_methods {
@@ -43,7 +47,9 @@ impl App {
             routes: Vec::new(),
             middleware: Vec::new(),
             context: AppContext::new(),
-            error_handler: None
+            error_handler: None,
+            server: Server::new(),
+            
         }
     }
     /// Returns a Handle to the [AppContext] inside the App
@@ -72,7 +78,23 @@ impl App {
             middleware: Box::new(middleware),
         });
     }
-
+    ///Creates a new [Socket] instance internaly and returns it.  
+    ///   
+    ///it also starts attaches the registered handlers to the Runtime.  
+    #[cfg(feature="websocket")]
+    pub fn ws<W>(&mut self, path: &'static str,handler: W)
+    where W: Fn(&mut Socket)
+    {
+        let mut socket = Socket::new(path);
+        let server = &mut self.server;
+        handler(&mut socket);
+        server.attach_websocket(path, move |ws|{
+                let cli = WsClient::new(ws);
+                socket.add_client(cli);
+                socket.run();
+            });
+    }
+    
     /// Add a global middleware to the application that will be applied to all routes.
     pub fn use_middleware(&mut self, middleware: impl Middleware + 'static) {
         self.middleware.push(Box::new(middleware));
@@ -97,7 +119,6 @@ impl App {
     ) -> Response {
         let mut response = Response::default();
         // Run global middleware
-        
         for middleware in global_middleware {
             match middleware.handle(&mut request, &mut response, &mut context) {
                 Ok(_) => {}
@@ -143,13 +164,9 @@ impl App {
     ///
     /// Panics if the server fails to start
     pub fn listen(&mut self, address: impl ToSocketAddrs + Display) {
-        let server_conf = ServerConfig {
-            address: address.to_string(),
-        };
-        let server = Server::new(server_conf);
-        println!(
-            "Feather listening on : http://{address}",
-        );
+        let server = &self.server;
+        server.start(&address);
+        println!("Feather listening on : http://{address}");
         let routes = &self.routes;
         let middleware = &self.middleware;
         let mut ctx = &mut self.context;
