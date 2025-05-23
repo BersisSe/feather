@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
-## [0.4.2] - 2025-05-21
+## [0.4.3] - 2025-05-24
 
 ### Notes
 This update is a minor update to Feather. It includes some bug fixes & some quality of life improvements.
