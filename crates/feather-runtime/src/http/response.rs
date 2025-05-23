@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use serde::Serialize;
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, fs::File, io::Read, str::FromStr};
 
 #[derive(Debug, Clone, Default)]
 pub struct Response {
@@ -14,7 +14,6 @@ pub struct Response {
     /// The body of the HTTP response.
     /// This is the content that is sent back to the client.
     /// The body is represented as a `Bytes` object for efficient handling of binary data.
-    /// But The Other Method like `json()`,`body()`can be used to get the body in different formats.
     pub body: Option<Bytes>,
     /// The HTTP version of the response.
     pub version: http::Version,
@@ -70,7 +69,7 @@ impl Response {
 
         Bytes::from(response)
     }
-
+    /// Sends given String as given text
     pub fn send_text(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
@@ -89,6 +88,7 @@ impl Response {
         self.headers
             .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
     }
+    /// Sends Given Bytes as plain text
     pub fn send_bytes(&mut self, data: impl Into<Vec<u8>>) {
         let body = data.into();
         self.headers
@@ -105,6 +105,7 @@ impl Response {
                 .unwrap(),
         );
     }
+    ///Takes a String(Should be valid HTML) and sends it's as Html
     pub fn send_html(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
@@ -123,6 +124,7 @@ impl Response {
                 .unwrap(),
         );
     }
+    /// Takes a Serializeable object and sends it as json.  
     pub fn send_json<T: Serialize>(&mut self, data: T) {
         match serde_json::to_string(&data) {
             Ok(json) => {
@@ -161,6 +163,31 @@ impl Response {
                 );
             }
         }
+    }
+    /// Take a [File] Struct and sends it as a file
+    pub fn send_file(&mut self,mut file: File){
+        let mut buffer = Vec::new();
+        match file.read_to_end(&mut buffer) {
+            Ok(_) => {
+                self.body = Some(Bytes::from(buffer));
+                self.headers
+                    .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+                self.headers.insert(
+                    "Content-Length",
+                    self.body
+                        .as_ref()
+                        .unwrap()
+                        .len()
+                        .to_string()
+                        .parse()
+                        .unwrap(),
+                );
+            }
+            Err(_) => {
+                self.status = StatusCode::INTERNAL_SERVER_ERROR;
+                self.body = Some(Bytes::from("Internal Server Error"));
+            }
+        } 
     }
 }
 

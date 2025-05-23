@@ -17,7 +17,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
 thiserror = { workspace = true }
-
+urlencoding = {workspace = true}
 [dev-dependencies]
 simple_logger = "5.0.0"
 

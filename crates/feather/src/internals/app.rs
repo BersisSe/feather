@@ -115,7 +115,7 @@ impl App {
         // Run route-specific middleware
         if let Some(route) = routes
             .iter()
-            .find(|r| r.method == request.method && r.path == request.uri.path())
+            .find(|r| r.method == request.method && r.path == request.path())
         {
             match route.middleware.handle(request, &mut response, &mut context){
                 Ok(_) => {}

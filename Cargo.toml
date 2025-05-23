@@ -19,3 +19,4 @@ crossbeam = { version = "~0.8", default-features = false ,features = ["std"]}
 anymap = { version = "~0.12", default-features = false }
 jsonwebtoken = { version = "9", default-features = false }
 rusqlite = { version = "~0.35", default-features = false }
+urlencoding = "2.1.3"

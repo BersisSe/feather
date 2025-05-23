@@ -45,7 +45,7 @@ pub fn parse(raw: &[u8]) -> Result<Request, Error> {
         .position(|w| w == b"\r\n\r\n")
         .map(|pos| pos + 4)
         .unwrap_or(raw.len());
-    let body = Bytes::copy_from_slice(&raw[body_start..]); // Changed from String to Bytes
+    let body = Bytes::copy_from_slice(&raw[body_start..]);
     let extensions = Extensions::new();
     Ok(Request {
         method,

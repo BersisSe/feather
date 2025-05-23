@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
+## [0.4.2] - 2025-05-21
+
+### Notes
+This update is a minor update to Feather. It includes some bug fixes & some quality of life improvements.
+
+### Added
+**Feather Framework**
+- N/A
+**Feather Runtime**
+- New `send_file` method on the `Response` object to send files as a response.
+- New `path` method on the `Request` object to get the request path as percent encoded.
+## Fixed
+**Feather Framework**  
+- Fixed a bug where the routes were not percent encoded.
+**Feather Runtime**
+- N/A
+
+## Changed
+**Feather Framework**  
+- Now every middleware returns a `Result<MiddlewareResult, Error>`(We Call it `Outcome` for simplicty) instead of `MiddlewareResult`.  
+- File Structure has been changed for better scalability.  
+- Middleware example has been rewritten to match the latest changes.
+**Feather Runtime**  
+- Response's `status` method's name is changed to `set_status` for better clarity.  
+---
+
+## [0.4.1] - 2025-05-11
+
+### Notes
+No Notable changes to the framework. Only the Readme file has been symlinked.
+
+---
+
 ## [0.4.0] - 2025-05-08
 
 ### Notes
@@ -19,7 +52,7 @@ Default error handler will log the message and return a 500 Internal Server Erro
 - New Error-Pipeline System to handle errors in middlewares.  
 - New `set_handler` method to set a custom error handler for the app.  
 - New `next()!` macro for better readability and less boilerplate code.  
-- New `Error-pipelin` Example to show how to use the new error handling system.
+- New `Error-pipeline` Example to show how to use the new error handling system.
 **Feather Runtime**
 - N/A
 ## Fixed

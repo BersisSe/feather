@@ -1,10 +1,11 @@
 use crate::utils::error::Error;
 use bytes::Bytes;
 use http::{Extensions, HeaderMap, Method, Uri, Version};
-use std::{collections::HashMap, fmt};
-
+use std::{borrow::Cow, collections::HashMap, fmt};
 use super::ConnectionState;
+use urlencoding::decode;
 
+/// Contains a incoming Http Request
 #[derive(Debug, Clone)]
 pub struct Request {
     /// The HTTP method of the request.<br>
@@ -25,12 +26,14 @@ pub struct Request {
 }
 
 impl Request {
-    /// Parses the body of the request as Serde JSON Value. Returns an error if the body is not valid JSON.
-    /// This method is useful for parsing JSON payloads in requests.
+    /// Parses the body of the request as Serde JSON Value. Returns an error if the body is not valid JSON.  
+    /// This method is useful for parsing JSON payloads in requests.  
     pub fn json(&self) -> Result<serde_json::Value, Error> {
         serde_json::from_slice(&self.body)
             .map_err(|e| Error::ParseError(format!("Failed to parse JSON body: {}", e)))
     }
+    /// Returns a Hashmap of the query parameters of the Request.  
+    /// Returns a Error if parsing fails
     pub fn query(&self) -> Result<HashMap<String, String>, Error> {
         if let Some(query) = self.uri.query() {
             serde_urlencoded::from_str(query)
@@ -39,6 +42,10 @@ impl Request {
             Ok(HashMap::new())
         }
     }
+    /// Returns the path of the Request
+    pub fn path(&self) -> Cow<'_,str>{
+        decode(self.uri.path()).unwrap()
+    }
 }
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -46,7 +53,7 @@ impl fmt::Display for Request {
             f,
             "{} for {}: Body Data: {} ",
             self.method,
-            self.uri,
+            self.uri.path(),
             String::from_utf8_lossy(&self.body)
         )
     }
