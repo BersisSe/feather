@@ -21,7 +21,3 @@ urlencoding = {workspace = true}
 parking_lot ={ workspace = true}
 [dev-dependencies]
 simple_logger = "5.0.0"
-
-[[example]]
-name = "server"
-path = "./examples/server.rs"
