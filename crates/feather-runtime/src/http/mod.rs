@@ -1,9 +1,7 @@
-mod parser;
 mod request;
 mod response;
 use std::ops::Deref;
 
-pub(crate) use parser::parse;
 pub use request::Request;
 pub use response::Response;
 

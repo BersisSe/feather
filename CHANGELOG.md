@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
+## [0.4.4] - 2025-05-24
+
+### Notes
+This is a Major Update not to Feather but rather Feather Runtime.  
+This update brings more modularity to Feather lets take a look at the changes!  
+
+### Added
+**Feather Framework**
+- N/A
+**Feather Runtime**
+- Request has a new Method named `take_stream` it takes the underlying TcpStream Out of the Request use this Method wisely.  
+
+## Fixed
+**General**
+- The `send_bytes` method on the Response mangling the input spesificly this [issue by timwedde ](https://github.com/BersisSe/feather/issues/12)
+
+## Changed
+**Feather Framework**  
+- N/A  
+**Feather Runtime**  
+- Some of the internals has been renamed for clarity 
+
+---
+
+
 ## [0.4.3] - 2025-05-24
 
 ### Notes
@@ -21,13 +46,6 @@ This update is a minor update to Feather. It includes some bug fixes & some qual
 **Feather Runtime**
 - N/A
 
-## Changed
-**Feather Framework**  
-- Now every middleware returns a `Result<MiddlewareResult, Error>`(We Call it `Outcome` for simplicty) instead of `MiddlewareResult`.  
-- File Structure has been changed for better scalability.  
-- Middleware example has been rewritten to match the latest changes.
-**Feather Runtime**  
-- Response's `status` method's name is changed to `set_status` for better clarity.  
 ---
 
 ## [0.4.1] - 2025-05-11

@@ -1,11 +1,10 @@
 use crate::{internals::AppContext, next, Outcome};
 use super::common::Middleware;
 
+
 use feather_runtime::http::{Request, Response};
 use std::{
-    fs::{self, File},
-    io::{self, Read},
-    path::Path,
+    fs::{self, File}, io::{self, Read}, path::Path,
 };
 
 /// Log incoming requests and transparently pass them to the next middleware.
@@ -169,3 +168,4 @@ impl Middleware for ServeStatic {
         next!()
     }
 }
+

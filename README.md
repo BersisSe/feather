@@ -29,14 +29,14 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "0.4.1"
+feather = "~0.5"
 ```
 
 ---
 
 ## Quick Example
 
-```rust,no_run
+```rust
 use feather::middleware::builtins;
 use feather::{App, AppContext, next};
 use feather::{Request, Response};

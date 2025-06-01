@@ -3,8 +3,7 @@ use super::AppContext;
 use crate::middleware::Middleware;
 pub use feather_runtime::Method;
 use feather_runtime::http::{Request, Response};
-use feather_runtime::server::server::Server;
-use feather_runtime::server::server::ServerConfig;
+use feather_runtime::runtime::engine::Engine;
 use std::borrow::Cow;
 use std::{fmt::Display, net::ToSocketAddrs};
 
@@ -143,24 +142,20 @@ impl App {
     ///
     /// Panics if the server fails to start
     pub fn listen(&mut self, address: impl ToSocketAddrs + Display) {
-        let server_conf = ServerConfig {
-            address: address.to_string(),
-        };
-        let server = Server::new(server_conf);
         println!(
             "Feather listening on : http://{address}",
         );
+        let rt = Engine::new(address);
         let routes = &self.routes;
         let middleware = &self.middleware;
         let mut ctx = &mut self.context;
         let error_handle = &self.error_handler;
-        server
-            .incoming()
-            .for_each(move |mut req| {
-                let response = Self::run_middleware(&mut req, &routes, &middleware, &mut ctx,error_handle);
-                return response;
-            })
-            .unwrap();
+        rt.start();
+        rt.for_each(move |mut req| {
+            let req_clone = req.clone();
+            let response = Self::run_middleware(&mut req, &routes, &middleware, &mut ctx,error_handle);
+            return (req_clone,response);
+        }).unwrap();
     }
 }
 

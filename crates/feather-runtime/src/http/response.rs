@@ -40,24 +40,26 @@ impl Response {
         }
         None
     }
-    /// Converts the `HttpResponse` into a raw HTTP response string.
-    pub fn to_raw(&self) -> String {
+    /// Converts the `HttpResponse` into a raw HTTP response as Bytes.
+    pub fn to_raw(&self) -> Bytes {
         let mut response = format!(
             "HTTP/1.1 {} {}\r\n",
             self.status.as_u16(),
             self.status.canonical_reason().unwrap_or("Unknown")
-        );
+        )
+        .into_bytes();
 
         for (key, value) in &self.headers {
-            response.push_str(&format!("{}: {}\r\n", key, value.to_str().unwrap()));
+            response.extend_from_slice(format!("{}: {}\r\n", key, value.to_str().unwrap()).as_bytes());
         }
 
-        response.push_str("\r\n");
+        response.extend_from_slice(b"\r\n");
 
         if let Some(ref body) = self.body {
-            response.push_str(&String::from_utf8_lossy(body));
+            response.extend_from_slice(body);
         }
-        response
+
+        Bytes::from(response)
     }
 
     /// Converts the `HttpResponse` into a raw HTTP response as bytes.
@@ -74,7 +76,7 @@ impl Response {
         let body = data.into();
         self.body = Some(Bytes::from(body));
         self.headers
-            .insert("Content-Type", "text/plain".parse().unwrap());
+            .insert("Content-Type", "text/plain;charset=utf-8".parse().unwrap());
         self.headers.insert(
             "Content-Length",
             self.body
@@ -165,7 +167,7 @@ impl Response {
         }
     }
     /// Take a [File] Struct and sends it as a file
-    pub fn send_file(&mut self,mut file: File){
+    pub fn send_file(&mut self, mut file: File) {
         let mut buffer = Vec::new();
         match file.read_to_end(&mut buffer) {
             Ok(_) => {
@@ -187,7 +189,7 @@ impl Response {
                 self.status = StatusCode::INTERNAL_SERVER_ERROR;
                 self.body = Some(Bytes::from("Internal Server Error"));
             }
-        } 
+        }
     }
 }
 

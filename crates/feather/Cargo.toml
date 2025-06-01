@@ -1,6 +1,6 @@
 [package]
 name = "feather"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 repository = "https://github.com/BersisSe/feather"
 description = "Feather: A minimal HTTP framework for Rust"
@@ -17,8 +17,7 @@ feather-runtime = { workspace = true }
 jsonwebtoken = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
-
 [features]
-default = ["json", "jwt"]
+default = ["json"]
 json = ["dep:serde", "dep:serde_json"]
 jwt = ["dep:jsonwebtoken"]
