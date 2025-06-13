@@ -36,7 +36,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "~0.5"
+feather = "~0.4"
 ```
 
 ---
