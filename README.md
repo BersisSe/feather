@@ -208,7 +208,6 @@ Special thanks to the contributors who have helped make Feather better!
 If you like Feather:
 
 - ⭐ Star it on [GitHub](https://github.com/BersisSe/feather),
-- If you can Maybe buy me a Coffee [Here](https://buymeacoffee.com/bersisse)!
 - Share it on Reddit, HN, or Discord
 - Build something and show up!
 
