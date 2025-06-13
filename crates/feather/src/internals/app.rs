@@ -5,6 +5,7 @@ pub use feather_runtime::Method;
 use feather_runtime::http::{Request, Response};
 use feather_runtime::runtime::engine::Engine;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::{fmt::Display, net::ToSocketAddrs};
 
 /// A route in the application.  
@@ -36,8 +37,21 @@ macro_rules! route_methods {
 
 impl App {
     /// Create a new instance of the application
+    /// Also initializes the logger with Level `Info` if the `log` feature is enabled and in debug mode.
+    /// # Example
+    /// ```rust
+    /// use feather::App;
+    /// fn main() {
+    ///     let mut app = App::new();
+    ///     // do stuff with app
+    /// }
+    /// ```
     #[must_use = "Does nothing if you don't use the `listen` method"]
     pub fn new() -> Self {
+        #[cfg(feature = "log")]
+        #[cfg(debug_assertions)]
+        simple_logger::init_with_level(log::Level::Info).unwrap();
+
         Self {
             routes: Vec::new(),
             middleware: Vec::new(),
@@ -111,28 +125,57 @@ impl App {
                 }
             }
         }
-        // Run route-specific middleware
-        if let Some(route) = routes
-            .iter()
-            .find(|r| r.method == request.method && r.path == request.path())
-        {
-            match route.middleware.handle(request, &mut response, &mut context){
+
+        // Run route-specific middleware with dynamic route matching
+    let mut found = false;
+    for route in routes.iter().filter(|r| r.method == request.method) {
+        if let Some(params) = Self::match_route(&route.path, &request.path()) {
+            request.set_params(params);
+            match route.middleware.handle(request, &mut response, &mut context) {
                 Ok(_) => {}
                 Err(e) => {
-                    if let Some(handler) =  &error_handler{
-                        handler(e,&request,&mut response)
-                    }else{
+                    if let Some(handler) = &error_handler {
+                        handler(e, &request, &mut response)
+                    } else {
                         eprintln!("Unhandled Error caught in Route Middlewares : {}", e);
                         response.set_status(500).send_text("Internal Server Error");
                     }
                 }
             }
-        }else{
-            response.set_status(404).send_text("404 Not Found");
+            found = true;
+            break;
+        }
+    }
+    if !found {
+        response.set_status(404).send_text("404 Not Found");
+    }
+
+    response
+}
+    
+
+
+    fn match_route<'r>(pattern: &'r str, path: &'r str) -> Option<HashMap<String,String>>{
+        let mut params = HashMap::new();
+        let pattern_parts: Vec<&str> = pattern.trim_matches('/').split('/').collect();
+        let path_parts: Vec<&str> = path.trim_matches('/').split('/').collect();
+
+        if pattern_parts.len() != path_parts.len() {
+            return None;
         }
 
-        response
+        for (pat,val) in pattern_parts.iter().zip(path_parts.iter()){
+            if pat.starts_with(':'){
+                params.insert(pat[1..].to_string(), val.to_string());
+            } else if pat != val{
+                return None;
+            }
+
+        }
+
+        Some(params)
     }
+
 
 
     /// Start the application and listen for incoming requests on the given address.

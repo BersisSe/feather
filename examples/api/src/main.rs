@@ -1,4 +1,4 @@
-use feather::{App, AppContext, Request, Response,next};
+use feather::{App, AppContext, Request, Response,next,info};
 
 fn main() {
     // Lets Create a App instance named api
@@ -13,7 +13,7 @@ fn main() {
         "/auth",
         |req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
             let data = req.json().unwrap();
-            println!("Received data: {:?}", data);
+            info!("Received data: {:?}", data);
             res.send_json(data);
             next!()
         },

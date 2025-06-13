@@ -35,10 +35,15 @@
 //! # Macros
 //! - `next!`: A syntactic sugar for `Ok(MiddlewareResult::Next)`, reducing boilerplate in middleware implementations.
 
+
 pub mod middleware;
 pub mod internals;
 #[cfg(feature = "jwt")]
 pub mod jwt;
+
+
+#[cfg(feature = "log")]
+pub use log::{info,warn,error,debug,trace};
 
 use std::error::Error;
 

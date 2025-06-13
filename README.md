@@ -1,6 +1,12 @@
-# 🪶 Feather
+<h1 align="center">🪶 Feather</h1>
 
-## **Feather** is a lightweight, DX-first web framework for Rust — inspired by the simplicity of Express.js, but designed for Rust’s performance and safety.
+<p align="center">
+  <a href="https://crates.io/crates/feather"><img src="https://img.shields.io/crates/v/feather.svg" alt="Crates.io"/></a>
+  <a href="https://docs.rs/feather"><img src="https://docs.rs/feather/badge.svg" alt="Docs.rs"/></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
+</p>
+
+## **Feather** is a lightweight, DX-first web framework for Rust. inspired by the simplicity of Express.js, but designed for Rust’s performance and safety.
 
 ## Why Feather?
 
@@ -10,16 +16,17 @@
 - **Easy State Management Using Context**  
   Recently implemented the Context API that makes it very easy to manage state without the use of Extractors/Macros.  
 
+- **All in One**  
+  Feather is a complete web framework that includes routing, middleware, logging, JWT authentication, and more, all in one package.
+
 - **Feel of Async Without Async**  
   Feather is Multithreaded by default running on **Feather-Runtime**.
   
-- **Great Tooling Out Of the Box**  
-  With the use of the [Feather-CLI](https://github.com/BersisSe/feather-cli/tree/main) creating API's and Web Servers becomes a _Breeze_.
 
 ## How it works behind the scenes:  
-Every Request given a thread from the Server's threadpool and that thread is responsible for returning the a response to that request.  
-So you can Run long running task's on another thread in the middlewares but the response can only be returned from the middleware the request is accepted on.  
-If you want to go deeper take look at [Feather-Runtime](./crates/feather-runtime)  
+Every request is given a thread from the server's threadpool and that thread is responsible for returning the response to that request.  
+So you can run long running tasks on another thread in the middlewares, but the response can only be returned from the middleware the request is accepted on.  
+If you want to go deeper take a look at [Feather-Runtime](./crates/feather-runtime)  
 
 ---
 
@@ -60,7 +67,7 @@ That’s all — no async.
 
 Middleware is intented to be the heart of Feather. You may write it as a closure, a struct, or chain them together:
 
-```rust,no_run
+```rust
 use feather::{App, AppContext, Request, Response,next,Outcome};
 use feather::middleware::builtins;
 use feather::middleware::{Middleware, MiddlewareResult};
@@ -101,9 +108,9 @@ Feather's new Context API allows you to manage application-wide state without ex
 
 As an example:
 
-```rust,no_run
+```rust
 use feather::{next, App, AppContext, Request, Response};
-// Create a couter struct to hold the state
+// Create a counter struct to hold the state
 #[derive(Debug)]
 struct Counter {
     pub count: i32,
@@ -141,7 +148,7 @@ Feather has a native JWT module activated using a cargo feature `jwt`:
 feather = { version = "0.3.1", features = ["jwt"] }
 ```
 
-```rust,no_run
+```rust
 use feather::jwt::{generate_jwt, with_jwt_auth};
 use feather::{App, AppContext,next};
 

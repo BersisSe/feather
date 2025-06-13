@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
+## [0.4.5] - 2025-06-13
+
+### Notes
+This is a Minor Update to Feather.
+It includes some bug fixes and quality of life improvements.
+
+
+### Added
+**Feather Framework**
+- Dynamic Route Parameters!  
+  You can now use dynamic route parameters in your routes.  
+  For example:  
+  ```rust
+  app.get("/user/:id", |req, res| {
+      let id = req.param("id").unwrap();
+      res.send_text(format!("User ID: {}", id));
+  });
+  ```
+  Express style dynamic route parameters are now supported!
+
+- The `debug`, `info`, `warn`, and `error` macros are re-exported from the `log` crate. also the new `log` feature is added to the framework.  
+  This allows you to use the `log` crate's macros directly in your Feather app without needing to import them separately.
+  
+**Feather Runtime**
+- Request now has a `param` method to get dynamic route parameters.
+
+
+## Changed
+**Feather Framework**
+- The `App` struct now initializes the logging facade using `simple_logger` crate with the `info` level by default.  
+  This means that you can use the `log` macros without needing to set up a logger.
+
+
+---
 ## [0.4.4] - 2025-05-24
 
 ### Notes

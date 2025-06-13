@@ -17,6 +17,6 @@ fn main() {
     // Use the ServeStatic middleware to serve static files from the "public" directory
     app.use_middleware(ServeStatic::new("./public".to_string())); // You can change the path to your static files here
 
-    //Lets Listen on port 8080
-    app.listen("127.0.0.1:8080");
+    //Lets Listen on port 5050
+    app.listen("127.0.0.1:5050");
 }

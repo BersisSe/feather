@@ -23,6 +23,8 @@ pub struct Request {
     pub body: Bytes,
     /// The extensions of the request.
     pub extensions: Extensions,
+    /// The route parameters of the request.
+    params: HashMap<String,String>,
     // Connection State(Keep-Alive OR Close) of the Request
     pub(crate) connection: Option<ConnectionState>,
 }
@@ -38,6 +40,7 @@ impl Clone for Request {
                 body: self.body.clone(), 
                 extensions: self.extensions.clone(), 
                 connection: self.connection.clone(),
+                params: self.params.clone(),
             }
             
         }
@@ -51,6 +54,7 @@ impl Clone for Request {
                 body: self.body.clone(), 
                 extensions: self.extensions.clone(), 
                 connection: self.connection.clone(),
+                params: self.params.clone(),
             }
         }
     }
@@ -110,6 +114,7 @@ impl Request {
             body,
             extensions,
             connection,
+            params: HashMap::new()
         })
     }
 
@@ -152,10 +157,21 @@ impl Request {
             Ok(HashMap::new())
         }
     }
+
+
+    pub fn set_params(&mut self, params: HashMap<String,String>) {
+        self.params = params;
+    }
+
+    pub fn param(&self, key: &str) -> Option<&str> {
+        self.params.get(key).map(|v| &**v)
+    }
+
     /// Returns the path of the Request
     pub fn path(&self) -> Cow<'_, str> {
         decode(self.uri.path()).unwrap()
     }
+
 }
 
 
