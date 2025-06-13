@@ -197,9 +197,9 @@ Feather is MIT licensed. See [LICENSE](./LICENSE).
 
 ## Acknowledgments
 
-Feather is inspired by [Express.js](https://expressjs.com) and exists to bring that same productivity to Rust.
-Huge thanks to the Rust community for their support and contributions!
-Special thanks to the contributors who have helped make Feather better!.
+Feather is inspired by [Express.js](https://expressjs.com) and exists to bring that same productivity to Rust.  
+Huge thanks to the Rust community for their support and contributions!  
+Special thanks to the contributors who have helped make Feather better!    
 
 ---
 
