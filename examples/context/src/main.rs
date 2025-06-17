@@ -1,6 +1,6 @@
 /// Use of the AppContext State Managment with Sqlite
 // Import Our Dependencies
-use feather::{next, App, AppContext, Outcome, Request, Response};
+use feather::{App, AppContext, Outcome, Request, Response, error, info, next};
 use rusqlite::{Connection, Result};
 use serde_json::json;
 
@@ -19,7 +19,7 @@ fn main() -> Result<()> {
         [],
     )?;
     app.context().set_state(conn); // Store the connection inside of our context
-    // from now on context is only accesible inside the context
+    // from now on conn is only accesible inside the context
 
     app.post("/login", login);
 
@@ -34,16 +34,16 @@ fn login(req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome
         Ok(json) => json,
         Err(_) => {
             res.set_status(400).send_json(json!({"error": "Invalid JSON"}));
-            return next!()
+            return next!();
         }
     };
-    println!("Received Json: {data}"); // Log it to see what we got
+    info!("Received Json: {data}"); // Log it to see what we got
     let db = ctx.get_state::<Connection>().unwrap(); // Get the Connection from the context. Unwrap is safe here because we know we set it before
     let username = match data.get("username") {
         Some(v) => v.to_string(),
         None => {
             res.set_status(400).send_text("No username found in the data!");
-            return next!()
+            return next!();
         }
     };
 
@@ -65,7 +65,7 @@ fn login(req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome
                     "success":false,
                 }
             ));
-            println!("{e}")
+            error!("{e}")
         }
     };
     next!()
@@ -73,14 +73,11 @@ fn login(req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome
 // Get Route for listing users
 fn get_user(_req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome {
     let db = ctx.get_state::<Connection>().unwrap(); // Again Take our Connection from the context. that is still a single connection
-    
+
     // We can use the ? operator here because we are inside of a function that returns a Result
     // We prepare a statement to select all names from the person table
     let mut stmt = db.prepare("SELECT name FROM person")?;
-    let users = stmt
-        .query_map([], |row| row.get::<_, String>(0))?
-        .filter_map(Result::ok)
-        .collect::<Vec<_>>();
+    let users = stmt.query_map([], |row| row.get::<_, String>(0))?.filter_map(Result::ok).collect::<Vec<_>>();
 
     res.set_status(200).send_json(json!({ "users": users }));
     next!()

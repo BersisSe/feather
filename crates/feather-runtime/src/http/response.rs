@@ -42,12 +42,7 @@ impl Response {
     }
     /// Converts the `HttpResponse` into a raw HTTP response as Bytes.
     pub fn to_raw(&self) -> Bytes {
-        let mut response = format!(
-            "HTTP/1.1 {} {}\r\n",
-            self.status.as_u16(),
-            self.status.canonical_reason().unwrap_or("Unknown")
-        )
-        .into_bytes();
+        let mut response = format!("HTTP/1.1 {} {}\r\n", self.status.as_u16(), self.status.canonical_reason().unwrap_or("Unknown")).into_bytes();
 
         for (key, value) in &self.headers {
             response.extend_from_slice(format!("{}: {}\r\n", key, value.to_str().unwrap()).as_bytes());
@@ -75,94 +70,40 @@ impl Response {
     pub fn send_text(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        self.headers
-            .insert("Content-Type", "text/plain;charset=utf-8".parse().unwrap());
-        self.headers.insert(
-            "Content-Length",
-            self.body
-                .as_ref()
-                .unwrap()
-                .len()
-                .to_string()
-                .parse()
-                .unwrap(),
-        );
-        self.headers
-            .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+        self.headers.insert("Content-Type", "text/plain;charset=utf-8".parse().unwrap());
+        self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
+        self.headers.insert("Date", chrono::Utc::now().to_string().parse().unwrap());
     }
     /// Sends Given Bytes as plain text
     pub fn send_bytes(&mut self, data: impl Into<Vec<u8>>) {
         let body = data.into();
-        self.headers
-            .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+        self.headers.insert("Date", chrono::Utc::now().to_string().parse().unwrap());
         self.body = Some(Bytes::from(body));
-        self.headers.insert(
-            "Content-Length",
-            self.body
-                .as_ref()
-                .unwrap()
-                .len()
-                .to_string()
-                .parse()
-                .unwrap(),
-        );
+        self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
     }
     ///Takes a String(Should be valid HTML) and sends it's as Html
     pub fn send_html(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        self.headers
-            .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
-        self.headers
-            .insert("Content-Type", "text/html".parse().unwrap());
-        self.headers.insert(
-            "Content-Length",
-            self.body
-                .as_ref()
-                .unwrap()
-                .len()
-                .to_string()
-                .parse()
-                .unwrap(),
-        );
+        self.headers.insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+        self.headers.insert("Content-Type", "text/html".parse().unwrap());
+        self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
     }
     /// Takes a Serializeable object and sends it as json.  
     pub fn send_json<T: Serialize>(&mut self, data: T) {
         match serde_json::to_string(&data) {
             Ok(json) => {
                 self.body = Some(Bytes::from(json));
-                self.headers
-                    .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
-                self.headers
-                    .insert("Content-Type", HeaderValue::from_static("application/json"));
-                self.headers.insert(
-                    "Content-Length",
-                    self.body
-                        .as_ref()
-                        .unwrap()
-                        .len()
-                        .to_string()
-                        .parse()
-                        .unwrap(),
-                );
+                self.headers.insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+                self.headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+                self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
             }
             Err(_) => {
-                self.headers
-                    .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+                self.headers.insert("Date", chrono::Utc::now().to_string().parse().unwrap());
                 self.status = StatusCode::INTERNAL_SERVER_ERROR;
                 self.body = Some(Bytes::from("Internal Server Error"));
-                self.headers
-                    .insert("Content-Type", HeaderValue::from_static("text/plain"));
-                self.headers.insert(
-                    "Content-Length",
-                    self.body
-                        .as_ref()
-                        .unwrap()
-                        .len()
-                        .to_string()
-                        .parse()
-                        .unwrap(),
-                );
+                self.headers.insert("Content-Type", HeaderValue::from_static("text/plain"));
+                self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
             }
         }
     }
@@ -172,18 +113,8 @@ impl Response {
         match file.read_to_end(&mut buffer) {
             Ok(_) => {
                 self.body = Some(Bytes::from(buffer));
-                self.headers
-                    .insert("Date", chrono::Utc::now().to_string().parse().unwrap());
-                self.headers.insert(
-                    "Content-Length",
-                    self.body
-                        .as_ref()
-                        .unwrap()
-                        .len()
-                        .to_string()
-                        .parse()
-                        .unwrap(),
-                );
+                self.headers.insert("Date", chrono::Utc::now().to_string().parse().unwrap());
+                self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
             }
             Err(_) => {
                 self.status = StatusCode::INTERNAL_SERVER_ERROR;

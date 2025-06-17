@@ -1,26 +1,25 @@
-use feather::{App, AppContext, MiddlewareResult, Request, Response,};
+use feather::{App, AppContext, next, Request, Response, middleware};
 
 fn main() {
     let mut app = App::new();
 
-    app.get("/", |_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
+    app.get("/", middleware!(|_req, res, _ctx| {
         res.send_bytes([]);
-        MiddlewareResult::NextRoute
-    });
+        next!()
+    }));
 
-    app.post("/user", |_req: &mut Request, _res: &mut Response, _ctx: &mut AppContext| {
-        MiddlewareResult::NextRoute
-    });
+    app.post("/user", middleware!(|_req, _res, _ctx| {
+        next!()
+    }));
 
-    app.get("/user", |req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
+    app.get("/user", middleware!(|req, res, _ctx| {
         if let Some(query) = req.uri.query() {
             res.send_bytes(query);       
         } else {
             res.send_bytes([]);
         }
-        
-        MiddlewareResult::NextRoute
-    });
+        next!()
+    }));
 
     app.listen("0.0.0.0:3000");
 }

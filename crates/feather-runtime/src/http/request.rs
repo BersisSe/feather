@@ -24,35 +24,33 @@ pub struct Request {
     /// The extensions of the request.
     pub extensions: Extensions,
     /// The route parameters of the request.
-    params: HashMap<String,String>,
+    params: HashMap<String, String>,
     // Connection State(Keep-Alive OR Close) of the Request
     pub(crate) connection: Option<ConnectionState>,
 }
 impl Clone for Request {
     fn clone(&self) -> Self {
-        if let Some(tcp) = &self.stream{
-            Self { 
-                stream: Some(tcp.try_clone().unwrap()), 
-                method: self.method.clone(), 
-                uri: self.uri.clone(), 
-                version: self.version.clone(), 
-                headers: self.headers.clone(), 
-                body: self.body.clone(), 
-                extensions: self.extensions.clone(), 
+        if let Some(tcp) = &self.stream {
+            Self {
+                stream: Some(tcp.try_clone().unwrap()),
+                method: self.method.clone(),
+                uri: self.uri.clone(),
+                version: self.version.clone(),
+                headers: self.headers.clone(),
+                body: self.body.clone(),
+                extensions: self.extensions.clone(),
                 connection: self.connection.clone(),
                 params: self.params.clone(),
             }
-            
-        }
-        else {
-            Self { 
-                stream: None, 
-                method: self.method.clone(), 
-                uri: self.uri.clone(), 
-                version: self.version.clone(), 
-                headers: self.headers.clone(), 
-                body: self.body.clone(), 
-                extensions: self.extensions.clone(), 
+        } else {
+            Self {
+                stream: None,
+                method: self.method.clone(),
+                uri: self.uri.clone(),
+                version: self.version.clone(),
+                headers: self.headers.clone(),
+                body: self.body.clone(),
+                extensions: self.extensions.clone(),
                 connection: self.connection.clone(),
                 params: self.params.clone(),
             }
@@ -67,18 +65,12 @@ impl Request {
         let mut headers = [httparse::EMPTY_HEADER; 16];
         let mut request = httparse::Request::new(&mut headers);
         let mut connection = None;
-        request
-            .parse(raw)
-            .map_err(|e| Error::ParseError(format!("Failed to parse request: {}", e)))?;
+        request.parse(raw).map_err(|e| Error::ParseError(format!("Failed to parse request: {}", e)))?;
         let method = match Method::from_str(request.method.unwrap_or("nil")) {
             Ok(m) => m,
             Err(e) => return Err(Error::ParseError(format!("Failed to parse method: {}", e))),
         };
-        let uri: Uri = request
-            .path
-            .ok_or_else(|| Error::ParseError("Failed to parse URI".to_string()))?
-            .parse()
-            .map_err(|e| Error::ParseError(format!("Failed to parse URI: {}", e)))?;
+        let uri: Uri = request.path.ok_or_else(|| Error::ParseError("Failed to parse URI".to_string()))?.parse().map_err(|e| Error::ParseError(format!("Failed to parse URI: {}", e)))?;
 
         let version = match request.version {
             Some(0) => Version::HTTP_10,
@@ -87,10 +79,8 @@ impl Request {
         };
         let mut header_map = HeaderMap::new();
         for header in request.headers.iter() {
-            let name = http::header::HeaderName::from_bytes(header.name.as_bytes())
-                .map_err(|e| Error::ParseError(format!("Failed to parse header name: {}", e)))?;
-            let value = http::header::HeaderValue::from_bytes(header.value)
-                .map_err(|e| Error::ParseError(format!("Failed to parse header value: {}", e)))?;
+            let name = http::header::HeaderName::from_bytes(header.name.as_bytes()).map_err(|e| Error::ParseError(format!("Failed to parse header name: {}", e)))?;
+            let value = http::header::HeaderValue::from_bytes(header.value).map_err(|e| Error::ParseError(format!("Failed to parse header value: {}", e)))?;
 
             if name.as_str().eq_ignore_ascii_case("connection") {
                 connection = ConnectionState::parse(value.to_str().unwrap_or(""));
@@ -98,11 +88,7 @@ impl Request {
 
             header_map.insert(name, value);
         }
-        let body_start = raw
-            .windows(4)
-            .position(|w| w == b"\r\n\r\n")
-            .map(|pos| pos + 4)
-            .unwrap_or(raw.len());
+        let body_start = raw.windows(4).position(|w| w == b"\r\n\r\n").map(|pos| pos + 4).unwrap_or(raw.len());
         let body = Bytes::copy_from_slice(&raw[body_start..]);
         let extensions = Extensions::new();
         Ok(Request {
@@ -114,7 +100,7 @@ impl Request {
             body,
             extensions,
             connection,
-            params: HashMap::new()
+            params: HashMap::new(),
         })
     }
 
@@ -123,7 +109,7 @@ impl Request {
     }
     /// Takes the stream of the request
     /// This medhod takes ownership of the Request!  
-    /// And also gives you to responsiblity give answer to the socket connection 
+    /// And also gives you to responsiblity give answer to the socket connection
     /// This method is only intented to used by Power Users use **it at your own risk.**  
     /// ## Usage:
     /// Takes the stream out but you have to clone the request to do so.  
@@ -144,22 +130,19 @@ impl Request {
     /// Parses the body of the request as Serde JSON Value. Returns an error if the body is not valid JSON.  
     /// This method is useful for parsing JSON payloads in requests.  
     pub fn json(&self) -> Result<serde_json::Value, Error> {
-        serde_json::from_slice(&self.body)
-            .map_err(|e| Error::ParseError(format!("Failed to parse JSON body: {}", e)))
+        serde_json::from_slice(&self.body).map_err(|e| Error::ParseError(format!("Failed to parse JSON body: {}", e)))
     }
     /// Returns a Hashmap of the query parameters of the Request.  
     /// Returns a Error if parsing fails
     pub fn query(&self) -> Result<HashMap<String, String>, Error> {
         if let Some(query) = self.uri.query() {
-            serde_urlencoded::from_str(query)
-                .map_err(|e| Error::ParseError(format!("Failed to Parse Query parameters {}", e)))
+            serde_urlencoded::from_str(query).map_err(|e| Error::ParseError(format!("Failed to Parse Query parameters {}", e)))
         } else {
             Ok(HashMap::new())
         }
     }
 
-
-    pub fn set_params(&mut self, params: HashMap<String,String>) {
+    pub fn set_params(&mut self, params: HashMap<String, String>) {
         self.params = params;
     }
 
@@ -171,19 +154,10 @@ impl Request {
     pub fn path(&self) -> Cow<'_, str> {
         decode(self.uri.path()).unwrap()
     }
-
 }
-
-
 
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} for {}: Body Data: {} ",
-            self.method,
-            self.uri.path(),
-            String::from_utf8_lossy(&self.body)
-        )
+        write!(f, "{} for {}: Body Data: {} ", self.method, self.uri.path(), String::from_utf8_lossy(&self.body))
     }
 }

@@ -3,6 +3,8 @@ resolver = "3" # 2024
 members = ["crates/*", "examples/*"]
 exclude = ["benches/axum", "benches/feather"]
 
+
+
 [workspace.dependencies]
 feather = { version = "~0.4",path = "./crates/feather", default-features = false }
 feather-runtime = { version = "~0.3", path = "./crates/feather-runtime", default-features = false }

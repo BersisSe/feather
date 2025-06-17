@@ -1,14 +1,9 @@
-use crate::{internals::AppContext, Outcome};
+use crate::{Outcome, internals::AppContext};
 use feather_runtime::http::{Request, Response};
 
 pub trait Middleware {
     /// Handle an incoming request synchronously.
-    fn handle(
-        &self,
-        request: &mut Request,
-        response: &mut Response,
-        ctx: &mut AppContext,
-    ) -> Outcome;
+    fn handle(&self, request: &mut Request, response: &mut Response, ctx: &mut AppContext) -> Outcome;
 }
 
 #[derive(Debug)]
@@ -21,17 +16,9 @@ pub enum MiddlewareResult {
 
 /// Implement the `Middleware` trait for a slice of middleware.
 impl Middleware for [&Box<dyn Middleware>] {
-    fn handle(
-        &self,
-        request: &mut Request,
-        response: &mut Response,
-        ctx: &mut AppContext,
-    ) -> Outcome {
+    fn handle(&self, request: &mut Request, response: &mut Response, ctx: &mut AppContext) -> Outcome {
         for middleware in self {
-            if matches!(
-                middleware.handle(request, response, ctx),
-                Ok(MiddlewareResult::NextRoute)
-            ) {
+            if matches!(middleware.handle(request, response, ctx), Ok(MiddlewareResult::NextRoute)) {
                 return Ok(MiddlewareResult::NextRoute);
             }
         }
@@ -41,12 +28,7 @@ impl Middleware for [&Box<dyn Middleware>] {
 
 ///Implement the `Middleware` trait for Closures with Request and Response Parameters.
 impl<F: Fn(&mut Request, &mut Response, &mut AppContext) -> Outcome> Middleware for F {
-    fn handle(
-        &self,
-        request: &mut Request,
-        response: &mut Response,
-        ctx: &mut AppContext,
-    ) -> Outcome {
+    fn handle(&self, request: &mut Request, response: &mut Response, ctx: &mut AppContext) -> Outcome {
         self(request, response, ctx)
     }
 }
@@ -59,10 +41,7 @@ where
     A: Middleware,
     B: Middleware,
 {
-    move |request: &mut Request,
-          response: &mut Response,
-          ctx: &mut AppContext|
-          -> Outcome {
+    move |request: &mut Request, response: &mut Response, ctx: &mut AppContext| -> Outcome {
         match a.handle(request, response, ctx) {
             Ok(MiddlewareResult::Next) => b.handle(request, response, ctx),
             Ok(MiddlewareResult::NextRoute) => Ok(MiddlewareResult::NextRoute),
@@ -77,7 +56,7 @@ where
 macro_rules! chain {
     ($first:expr, $($rest:expr),+ $(,)?) => {{
         let chained = $first;
-        $(let chained = $crate::middleware::common::_chainer(chained, $rest);)+
+        $(let chained = $crate::middlewares::common::_chainer(chained, $rest);)+
         chained
     }};
 }

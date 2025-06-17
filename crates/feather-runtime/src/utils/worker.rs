@@ -73,9 +73,7 @@ impl TaskPool {
     pub fn add_task(&self, task: Job) {
         self.sender.send(task).unwrap();
 
-        if self.idle_workers.load(Ordering::Acquire) == 0
-            && self.active_workers.load(Ordering::Acquire) < self.config.max_workers
-        {
+        if self.idle_workers.load(Ordering::Acquire) == 0 && self.active_workers.load(Ordering::Acquire) < self.config.max_workers {
             self.add_worker();
         }
     }

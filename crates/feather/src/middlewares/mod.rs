@@ -3,4 +3,4 @@
 pub mod builtins;
 pub mod common;
 
-pub use common::{Middleware, MiddlewareResult, chain };
+pub use common::{Middleware, MiddlewareResult, chain};

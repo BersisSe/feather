@@ -159,11 +159,7 @@ impl Engine {
         loop {
             match engine.recv() {
                 Ok(request) => {
-                    let connect = &request
-                        .connection
-                        .as_deref()
-                        .unwrap_or("keep-alive")
-                        .to_lowercase();
+                    let connect = &request.connection.as_deref().unwrap_or("keep-alive").to_lowercase();
                     let (request, mut response) = handle(request);
                     response.add_header("connection", &connect);
                     if let Some(mut stream) = request.take_stream() {

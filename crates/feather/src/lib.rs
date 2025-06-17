@@ -1,55 +1,75 @@
-//! Feather is a lightweight and extensible web framework for Rust, inspired by the simplicity of Express.js.
+//! # 🪶 Feather: Middleware-First, DX-First Web Framework for Rust
 //!
-//! # Features
+//! Feather is a lightweight, middleware-first web framework for Rust, inspired by the simplicity of Express.js but designed for Rust’s performance and safety.
+//!
+//! ## Philosophy
+//! - **Middleware-First**: Everything in Feather is a middleware, or produces a middleware. This enables powerful composition and a familiar, flexible mental model.
+//! - **DX-First**: Feather is designed to be easy to use, with minimal boilerplate, clear APIs, and a focus on developer experience.
+//!
+//! ## Features
 //! - **Express.js-like Routing**: Use `app.get` style routing for simplicity and familiarity.
 //! - **State Management**: Manage application state efficiently using the Context API.
 //! - **Error Handling**: Runtime error handling for easier debugging and recovery.
 //! - **Middleware Support**: Create and chain middlewares for modular and reusable code.
-//! - **Out of the Box Support**: Things like JWT are supported via Cargo Features
+//! - **All-in-One**: Includes routing, middleware, logging, JWT authentication, and more.
+//! - **Multithreaded by Default**: Powered by Feather-Runtime for high performance without async.
 //!
+//! ## Getting Started
+//! Add Feather to your `Cargo.toml`:
+//! ```toml
+//! [dependencies]
+//! feather = "~0.4"
+//! ```
 //!
-//! ## Example
+//! ### Quick Example
 //! ```rust,no_run
-//! use feather::{App, Request, Response, AppContext, next};
-//!
+//! use feather::{App, AppContext, Request, Response, next, middleware};
 //! fn main() {
 //!     let mut app = App::new();
-//! 
-//!     app.get("/", |_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
+//!     app.get("/", middleware!(|_req, res, _ctx| {
 //!         res.send_text("Hello, Feather!");
 //!         next!()
-//!     });
-//! 
+//!     }));
 //!     app.listen("127.0.0.1:5050");
 //! }
 //! ```
 //!
-//! # Modules
-//! - `middleware`: Define and use custom middlewares.
-//! - `internals`: Core components like `App` and `AppContext`.
-//! - `jwt` (optional): JWT utilities for authentication (requires the `jwt` feature).
+//! ## Middleware in Feather
+//! Middleware is the heart of Feather. You can write middleware as a closure, a struct, or chain them together. The `middleware!` macro helps reduce boilerplate for closures:
 //!
-//! # Type Aliases
-//! - `Outcome`: A type alias for `Result<MiddlewareResult, Box<dyn Error>>`, used as the return type for middlewares.
+//! ```rust
+//! app.get("/", middleware!(|req, res, ctx| {
+//!     // ...
+//!     next!()
+//! }));
+//! ```
 //!
-//! # Macros
-//! - `next!`: A syntactic sugar for `Ok(MiddlewareResult::Next)`, reducing boilerplate in middleware implementations.
+//! ## State Management
+//! Feather's Context API allows you to manage application-wide state without extractors or macros. See the README for more details.
+//!
+//! ## Macros
+//! - `next!`: Syntactic sugar for `Ok(MiddlewareResult::Next)`, reducing boilerplate in middleware implementations.
+//! - `middleware!`: Concise closure middleware definition.
+//!
+//! ---
 
-
-pub mod middleware;
+//? Renamed from `middleware` to `middlewares` so we can avoid import conflicts with `middleware!` macro
 pub mod internals;
 #[cfg(feature = "jwt")]
 pub mod jwt;
+pub mod middlewares;
 
+#[cfg(feature = "json")]
+pub use serde_json::{Value, json};
 
 #[cfg(feature = "log")]
-pub use log::{info,warn,error,debug,trace};
+pub use log::{debug, error, info, trace, warn};
 
 use std::error::Error;
 
-pub use feather_runtime::http::{Request,Response};
+pub use crate::middlewares::MiddlewareResult;
+pub use feather_runtime::http::{Request, Response};
 pub use internals::{App, AppContext};
-pub use crate::middleware::MiddlewareResult;
 
 /// This is just a type alias for `Result<MiddlewareResult, Box<dyn Error>>;`  
 /// Outcome is used in All middlewares as a return type.
@@ -60,6 +80,28 @@ pub type Outcome = Result<MiddlewareResult, Box<dyn Error>>;
 #[macro_export]
 macro_rules! next {
     () => {
-        Ok($crate::middleware::MiddlewareResult::Next)
+        Ok($crate::middlewares::MiddlewareResult::Next)
+    };
+}
+
+/// The `middleware!` macro allows you to define middleware functions concisely without repeating type signatures.
+///
+/// # Usage
+///
+/// Use the argument form to access request, response, and context objects:
+///
+/// ```rust,ignore
+/// app.get("/", middleware!(|req, res, ctx| {
+///     res.send_text("Hello, world!");
+///     next!()
+/// }));
+/// ```
+///
+/// This macro expands to a closure with the correct types for Feather's middleware system.
+#[macro_export]
+macro_rules! middleware {
+    // Argument form: middleware!(|req, res, ctx| { ... })
+    (|$req:ident, $res:ident, $ctx:ident| $body:block) => {
+        |$req: &mut $crate::Request, $res: &mut $crate::Response, $ctx: &mut $crate::AppContext| $body
     };
 }

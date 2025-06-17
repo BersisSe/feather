@@ -1,4 +1,4 @@
-use crate::{middleware::Middleware, next, AppContext, Outcome, Request, Response};
+use crate::{AppContext, Outcome, Request, Response, middlewares::Middleware, next};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +7,6 @@ pub struct Claims {
     pub sub: String,
     pub exp: usize,
 }
-
 
 /// Used to protect the route with JWT authentication
 /// The middleware will check if the token is valid and not expired
@@ -39,11 +38,7 @@ where
 
         let token = &auth_str[7..];
 
-        match decode::<Claims>(
-            token,
-            &DecodingKey::from_secret(secret.as_bytes()),
-            &Validation::default(),
-        ) {
+        match decode::<Claims>(token, &DecodingKey::from_secret(secret.as_bytes()), &Validation::default()) {
             Ok(data) => Ok(handler(req, res, ctx, data.claims)?),
             Err(_) => {
                 res.set_status(401);
@@ -57,21 +52,11 @@ where
 /// Function to generate a JWT token
 /// The token will be valid for 1 hour
 /// and will be signed with the secret
-pub fn generate_jwt(
-    subject: Option<&str>,
-    secret: &str,
-) -> Result<String, jsonwebtoken::errors::Error> {
+pub fn generate_jwt(subject: Option<&str>, secret: &str) -> Result<String, jsonwebtoken::errors::Error> {
     let claims = Claims {
         sub: subject.unwrap_or_default().to_string(),
-        exp: chrono::Utc::now()
-            .checked_add_signed(chrono::Duration::hours(1))
-            .expect("valid timestamp")
-            .timestamp() as usize,
+        exp: chrono::Utc::now().checked_add_signed(chrono::Duration::hours(1)).expect("valid timestamp").timestamp() as usize,
     };
 
-    encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
-    )
+    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
 }

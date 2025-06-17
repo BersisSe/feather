@@ -1,6 +1,6 @@
-use super::error_stack::ErrorHandler;
 use super::AppContext;
-use crate::middleware::Middleware;
+use super::error_stack::ErrorHandler;
+use crate::middlewares::Middleware;
 pub use feather_runtime::Method;
 use feather_runtime::http::{Request, Response};
 use feather_runtime::runtime::engine::Engine;
@@ -21,7 +21,7 @@ pub struct App {
     routes: Vec<Route>,
     middleware: Vec<Box<dyn Middleware>>,
     context: AppContext,
-    error_handler: Option<ErrorHandler>
+    error_handler: Option<ErrorHandler>,
 }
 
 macro_rules! route_methods {
@@ -56,7 +56,7 @@ impl App {
             routes: Vec::new(),
             middleware: Vec::new(),
             context: AppContext::new(),
-            error_handler: None
+            error_handler: None,
         }
     }
     /// Returns a Handle to the [AppContext] inside the App
@@ -67,18 +67,13 @@ impl App {
     /// Set up the Error Handling Solution for that [App].  
     /// If there are no Error Handler present by default,  
     /// framework will Catch the error and print it to the `stderr` and return a `500` Status code response back to the client
-    pub fn set_error_handler(&mut self,handler: ErrorHandler){
+    pub fn set_error_handler(&mut self, handler: ErrorHandler) {
         self.error_handler = Some(handler)
     }
 
     /// Add a route to the application.  
     /// Every Route Returns A MiddlewareResult to control the flow of your application.
-    pub fn route<M: Middleware + 'static>(
-        &mut self,
-        method: Method,
-        path: impl Into<Cow<'static, str>>,
-        middleware: M,
-    ) {
+    pub fn route<M: Middleware + 'static>(&mut self, method: Method, path: impl Into<Cow<'static, str>>, middleware: M) {
         self.routes.push(Route {
             method,
             path: path.into(),
@@ -101,24 +96,18 @@ impl App {
         OPTIONS options
     );
 
-    fn run_middleware(
-        mut request: &mut Request,
-        routes: &[Route],
-        global_middleware: &[Box<dyn Middleware>],
-        mut context: &mut AppContext,
-        error_handler: &Option<ErrorHandler>
-    ) -> Response {
+    fn run_middleware(mut request: &mut Request, routes: &[Route], global_middleware: &[Box<dyn Middleware>], mut context: &mut AppContext, error_handler: &Option<ErrorHandler>) -> Response {
         let mut response = Response::default();
         // Run global middleware
-        
+
         for middleware in global_middleware {
             match middleware.handle(&mut request, &mut response, &mut context) {
                 Ok(_) => {}
                 Err(e) => {
                     if let Some(handler) = &error_handler {
-                        handler(e,&request,&mut response)
-                    }else{
-                        eprintln!("Unhandled Error caught in middlewares: {}",e);
+                        handler(e, &request, &mut response)
+                    } else {
+                        eprintln!("Unhandled Error caught in middlewares: {}", e);
                         response.set_status(500).send_text("Internal Server Error!");
                         return response;
                     }
@@ -127,35 +116,33 @@ impl App {
         }
 
         // Run route-specific middleware with dynamic route matching
-    let mut found = false;
-    for route in routes.iter().filter(|r| r.method == request.method) {
-        if let Some(params) = Self::match_route(&route.path, &request.path()) {
-            request.set_params(params);
-            match route.middleware.handle(request, &mut response, &mut context) {
-                Ok(_) => {}
-                Err(e) => {
-                    if let Some(handler) = &error_handler {
-                        handler(e, &request, &mut response)
-                    } else {
-                        eprintln!("Unhandled Error caught in Route Middlewares : {}", e);
-                        response.set_status(500).send_text("Internal Server Error");
+        let mut found = false;
+        for route in routes.iter().filter(|r| r.method == request.method) {
+            if let Some(params) = Self::match_route(&route.path, &request.path()) {
+                request.set_params(params);
+                match route.middleware.handle(request, &mut response, &mut context) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        if let Some(handler) = &error_handler {
+                            handler(e, &request, &mut response)
+                        } else {
+                            eprintln!("Unhandled Error caught in Route Middlewares : {}", e);
+                            response.set_status(500).send_text("Internal Server Error");
+                        }
                     }
                 }
+                found = true;
+                break;
             }
-            found = true;
-            break;
         }
+        if !found {
+            response.set_status(404).send_text("404 Not Found");
+        }
+
+        response
     }
-    if !found {
-        response.set_status(404).send_text("404 Not Found");
-    }
 
-    response
-}
-    
-
-
-    fn match_route<'r>(pattern: &'r str, path: &'r str) -> Option<HashMap<String,String>>{
+    fn match_route<'r>(pattern: &'r str, path: &'r str) -> Option<HashMap<String, String>> {
         let mut params = HashMap::new();
         let pattern_parts: Vec<&str> = pattern.trim_matches('/').split('/').collect();
         let path_parts: Vec<&str> = path.trim_matches('/').split('/').collect();
@@ -164,19 +151,16 @@ impl App {
             return None;
         }
 
-        for (pat,val) in pattern_parts.iter().zip(path_parts.iter()){
-            if pat.starts_with(':'){
+        for (pat, val) in pattern_parts.iter().zip(path_parts.iter()) {
+            if pat.starts_with(':') {
                 params.insert(pat[1..].to_string(), val.to_string());
-            } else if pat != val{
+            } else if pat != val {
                 return None;
             }
-
         }
 
         Some(params)
     }
-
-
 
     /// Start the application and listen for incoming requests on the given address.
     /// Blocks the current thread until the server is stopped.
@@ -185,9 +169,7 @@ impl App {
     ///
     /// Panics if the server fails to start
     pub fn listen(&mut self, address: impl ToSocketAddrs + Display) {
-        println!(
-            "Feather listening on : http://{address}",
-        );
+        println!("Feather listening on : http://{address}",);
         let rt = Engine::new(address);
         let routes = &self.routes;
         let middleware = &self.middleware;
@@ -196,9 +178,9 @@ impl App {
         rt.start();
         rt.for_each(move |mut req| {
             let req_clone = req.clone();
-            let response = Self::run_middleware(&mut req, &routes, &middleware, &mut ctx,error_handle);
-            return (req_clone,response);
-        }).unwrap();
+            let response = Self::run_middleware(&mut req, &routes, &middleware, &mut ctx, error_handle);
+            return (req_clone, response);
+        })
+        .unwrap();
     }
 }
-

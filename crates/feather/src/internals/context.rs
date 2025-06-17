@@ -16,7 +16,7 @@ impl AppContext {
     /// Used the Read the State from the Context you can use the turbofish syntax to access objects  
     /// Like this:
     /// ```rust,ignore
-    /// let db = ctx.read_state::<Connection>();
+    /// let db = ctx.get_state::<Connection>();
     /// ```
     pub fn get_state<T: 'static>(&self) -> Option<&T> {
         self.inner.get::<T>()
