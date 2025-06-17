@@ -6,21 +6,22 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
 </p>
 
-## **Feather** is a lightweight, DX-first web framework for Rust. inspired by the simplicity of Express.js, but designed for Rust’s performance and safety.
+## **Feather** is a lightweight, DX-first web framework for Rust. Inspired by the simplicity of Express.js, but designed for Rust’s performance and safety.
 
 ## Why Feather?
 
 - **Middleware-First Architecture**  
-  Everything is a middleware even if they are not a middleware they produce a middleware in the end.  
+  Everything is a middleware—even if it's not, it produces a middleware in the end.  
+  The new `middleware!` macro makes writing route and middleware closures concise and ergonomic.
 
 - **Easy State Management Using Context**  
-  Recently implemented the Context API that makes it very easy to manage state without the use of Extractors/Macros.  
+  The Context API makes it very easy to manage state without the use of Extractors/Macros.  
 
 - **All in One**  
   Feather is a complete web framework that includes routing, middleware, logging, JWT authentication, and more, all in one package.
 
 - **Feel of Async Without Async**  
-  Feather is Multithreaded by default running on **Feather-Runtime**.
+  Feather is multithreaded by default, running on **Feather-Runtime**.
   
 
 ## How it works behind the scenes:  
@@ -44,16 +45,14 @@ feather = "~0.4"
 ## Quick Example
 
 ```rust
-use feather::middleware::builtins;
-use feather::{App, AppContext, next};
-use feather::{Request, Response};
+use feather::middlewares::builtins;
+use feather::{App, next, middleware};
 fn main() {
     let mut app = App::new();
-    app.get("/", |_request: &mut Request, response: &mut Response, _ctx: &mut AppContext| {
-        response.send_text("Hello, world!");
+    app.get("/", middleware!(|_req, res, _ctx| {
+        res.send_text("Hello, world!");
         next!()
-    });
-    
+    }));
     app.use_middleware(builtins::Logger);
     app.listen("127.0.0.1:5050");
 }
@@ -65,76 +64,59 @@ That’s all — no async.
 
 ## Middleware in Feather
 
-Middleware is intented to be the heart of Feather. You may write it as a closure, a struct, or chain them together:
+Middleware is the heart of Feather. You may write it as a closure (using the `middleware!` macro), a struct, or chain them together:
 
 ```rust
-use feather::{App, AppContext, Request, Response,next,Outcome};
-use feather::middleware::builtins;
-use feather::middleware::{Middleware, MiddlewareResult};
-
-// Implementors of the Middleware trait are middleware that can be used in a Feather app.
-struct Custom;
-
-impl Middleware for Custom {
-    fn handle(&self, request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> Outcome {
-      println!("Now running some custom middleware (struct Custom)!");
-      println!("And there's a request with path: {:?}", request.uri);
-      next!()
-    }
-}
+use feather::{App, next, middleware};
 
 fn main() {
     let mut app = App::new();
-    app.use_middleware(builtins::Logger);
-    app.use_middleware(Custom);
-    app.use_middleware(|_req: &mut Request, _res: &mut Response, _ctx: &mut AppContext| {
-        println!("Now running some custom middleware (closure)!");
+    app.use_middleware(middleware!(|_req, _res, _ctx| {
+        println!("Custom global middleware!");
         next!()
-    });
-
-    app.get("/",|_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
+    }));
+    app.get("/", middleware!(|_req, res, _ctx| {
         res.send_text("Hello, world!");
         next!()
-    });
-
+    }));
     app.listen("127.0.0.1:5050");
 }
 ```
+
+Or as a struct:
+
+```rust
+use feather::{middlewares::Middleware, next};
+struct Custom;
+impl Middleware for Custom {
+    fn handle(&self, req: &mut feather::Request, res: &mut feather::Response, ctx: &mut feather::AppContext) -> feather::Outcome {
+        println!("Custom struct middleware!");
+        next!()
+    }
+}
+```
+
 ---
 
 ## State Management using the Context API
 
-Feather's new Context API allows you to manage application-wide state without extractors or macros.
-
-As an example:
+Feather's Context API allows you to manage application-wide state without extractors or macros.
 
 ```rust
-use feather::{next, App, AppContext, Request, Response};
-// Create a counter struct to hold the state
+use feather::{next, App, middleware};
 #[derive(Debug)]
-struct Counter {
-    pub count: i32,
-}
+struct Counter { pub count: i32 }
 fn main() {
     let mut app = App::new();
-    let counter = Counter { count: 0 };
-    app.context().set_state(counter);
-
-    app.get("/",move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
-      let counter: &mut Counter = ctx.get_mut_state::<Counter>().unwrap();
-      counter.count += 1;
-      res.send_text(format!("Counted! {}", counter.count));
-      next!()
-    });
-    // Lastly add a route to get the current count
-    app.get("/count",move |_req: &mut Request, res: &mut Response, ctx: &mut AppContext| {
-      let counter = ctx.get_state::<Counter>().unwrap();
-      res.send_text(counter.count.to_string());
-      next!()
-    });
+    app.context().set_state(Counter { count: 0 });
+    app.get("/", middleware!(|_req, res, ctx| {
+        let counter = ctx.get_mut_state::<Counter>().unwrap();
+        counter.count += 1;
+        res.send_text(format!("Counted! {}", counter.count));
+        next!()
+    }));
     app.listen("127.0.0.1:5050");
 }
-
 ```
 
 Context is especially useful when needing to access databases and files.
@@ -145,22 +127,19 @@ Feather has a native JWT module activated using a cargo feature `jwt`:
 
 ```toml
 [dependencies]
-feather = { version = "0.3.1", features = ["jwt"] }
+feather = { version = "*", features = ["jwt"] }
 ```
 
 ```rust
 use feather::jwt::{generate_jwt, with_jwt_auth};
-use feather::{App, AppContext,next};
-
+use feather::{App, next};
 fn main() {
     let mut app = App::new();
-    app.get("/auth",with_jwt_auth("secretcode", |_req, res,_ctx, claim| {
+    app.get("/auth", with_jwt_auth("secretcode", |_req, res, _ctx, claim| {
         println!("Claim: {:?}", claim);
         res.send_text("Hello, JWT!");
         next!()
-      }),
-    );
-    // Check the JWT Example for a more complete version!
+    }));
     app.listen("127.0.0.1:8080")
 }
 ```
@@ -169,9 +148,9 @@ fn main() {
 
 ## Goals
 
-- Being the simplest Rust web framework to get started with
-- Being modular and easy to extend
-- Focusing on DX without sacrificing Rust's safety and performance
+- Be the simplest Rust web framework to get started with
+- Be modular and easy to extend
+- Focus on DX without sacrificing Rust's safety and performance
 
 ---
 

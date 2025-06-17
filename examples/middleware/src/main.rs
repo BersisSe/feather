@@ -1,4 +1,4 @@
-use feather::{App, AppContext, Outcome, Request, Response, chain, middlewares::builtins, next};
+use feather::{chain, middleware, middlewares::builtins, next, App, AppContext, Outcome, Request, Response};
 mod middleware;
 use middleware::MyMiddleware;
 fn main() {
@@ -6,10 +6,10 @@ fn main() {
 
     app.use_middleware(builtins::Logger); // We can easily use middlewares using this syntax
     // We can also put Closures as a middleware parameter. that what makes Feather "Middleware-First"
-    app.use_middleware(|_req: &mut feather::Request, _res: &mut feather::Response, _ctx: &mut feather::AppContext| {
-        println!("Ow a Request: I am a Closure Middleware BTW");
+    app.use_middleware(middleware!(|_req, _res, _ctx| {
+        println!("Custom global middleware!");
         next!()
-    });
+    }));
     app.use_middleware(MyMiddleware("Secret Codee".to_string()));
 
     app.get("/", |_req: &mut Request, res: &mut Response, _ctx: &mut AppContext| {
