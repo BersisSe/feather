@@ -129,6 +129,7 @@ impl Request {
 
     /// Parses the body of the request as Serde JSON Value. Returns an error if the body is not valid JSON.  
     /// This method is useful for parsing JSON payloads in requests.  
+    #[cfg(feature = "json")]
     pub fn json(&self) -> Result<serde_json::Value, Error> {
         serde_json::from_slice(&self.body).map_err(|e| Error::ParseError(format!("Failed to parse JSON body: {}", e)))
     }

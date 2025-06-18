@@ -89,7 +89,9 @@ impl Response {
         self.headers.insert("Content-Type", "text/html".parse().unwrap());
         self.headers.insert("Content-Length", self.body.as_ref().unwrap().len().to_string().parse().unwrap());
     }
-    /// Takes a Serializeable object and sends it as json.  
+
+    /// Takes a Serializeable object and sends it as json.
+    #[cfg(feature = "json")]
     pub fn send_json<T: Serialize>(&mut self, data: T) {
         match serde_json::to_string(&data) {
             Ok(json) => {

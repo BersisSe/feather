@@ -51,7 +51,7 @@ impl Engine {
         };
         server
     }
-    /// Add a new task to the internal TaskPool works like `thread::spawn` but its managed by the Engine
+    /// Add a new task to the internal TaskPool works like `thread::spawn` but its managed bythe Engine
     pub fn spawn(&self, task: impl Into<Job>) {
         self.tasks.add_task(task.into());
     }
@@ -76,7 +76,7 @@ impl Engine {
         // Start the Acceptor thread
         thread::spawn(move || {
             let tasks = tasks;
-            log::debug!("Running Acceptor");
+            log::debug!("Acceptor thread started");
 
             while !inside_closer.load(Ordering::SeqCst) {
                 match server.accept() {
