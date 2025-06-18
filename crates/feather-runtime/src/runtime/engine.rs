@@ -76,6 +76,7 @@ impl Engine {
         // Start the Acceptor thread
         thread::spawn(move || {
             let tasks = tasks;
+            #[cfg(feature = "log")]
             log::debug!("Acceptor thread started");
 
             while !inside_closer.load(Ordering::SeqCst) {
@@ -100,16 +101,19 @@ impl Engine {
                                         }
                                     }
                                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                                        #[cfg(feature = "log")]
                                         log::debug!("Connection timed out");
                                         stream.shutdown(std::net::Shutdown::Both).unwrap_or(());
                                         break;
                                     }
                                     Err(ref e) if e.kind() == io::ErrorKind::ConnectionReset => {
+                                        #[cfg(feature = "log")]
                                         log::debug!("Connection reset by peer");
                                         stream.shutdown(std::net::Shutdown::Both).unwrap_or(());
                                         break;
                                     }
                                     Err(e) => {
+                                        #[cfg(feature = "log")]
                                         log::debug!("Error reading stream: {}", e);
                                         break;
                                     }
@@ -118,11 +122,13 @@ impl Engine {
                         })));
                     }
                     Err(e) => {
+                        #[cfg(feature = "log")]
                         log::debug!("Error accepting connection: {}", e);
                         continue;
                     }
                 }
             }
+            #[cfg(feature = "log")]
             log::debug!("Acceptor thread shutting down");
         });
     }
@@ -168,10 +174,12 @@ impl Engine {
                         match writer.flush() {
                             Ok(_) => {}
                             Err(e) if e.kind() == io::ErrorKind::BrokenPipe => {
+                                #[cfg(feature = "log")]
                                 log::debug!("Client disconnected");
                                 continue;
                             }
                             Err(e) => {
+                                #[cfg(feature = "log")]
                                 log::debug!("Error writing response: {}", e);
                                 break;
                             }
@@ -182,6 +190,7 @@ impl Engine {
                     }
                 }
                 Err(e) => {
+                    #[cfg(feature = "log")]
                     log::debug!("Error receiving message: {}", e);
                     break;
                 }

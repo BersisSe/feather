@@ -13,7 +13,7 @@ crossbeam = { workspace = true }
 http = { workspace = true }
 httparse = { workspace = true }
 log = { workspace = true , optional = true}
-serde = { workspace = true, optional = true}
+serde = { workspace = true}
 serde_json = { workspace = true, optional = true}
 serde_urlencoded = { workspace = true}
 thiserror = { workspace = true }
@@ -25,7 +25,6 @@ simple_logger = "5.0.0"
 
 [features]
 default = ["full"]
-full = ["serde", "json","log"]
+full = ["json","log"]
 log = ["dep:log",]
-serde = ["dep:serde"]
-json = ["serde","dep:serde_json"]
+json = ["dep:serde_json"]
