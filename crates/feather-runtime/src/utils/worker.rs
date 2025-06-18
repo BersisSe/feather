@@ -1,4 +1,3 @@
-// src/utils/worker.rs
 use crossbeam::channel::{Receiver, Sender, unbounded};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};

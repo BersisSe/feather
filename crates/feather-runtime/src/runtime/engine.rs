@@ -51,7 +51,7 @@ impl Engine {
         };
         server
     }
-    /// Add a new task to the internal TaskPool works like `thread::spawn` but its managed the Engine
+    /// Add a new task to the internal TaskPool works like `thread::spawn` but its managed by the Engine
     pub fn spawn(&self, task: impl Into<Job>) {
         self.tasks.add_task(task.into());
     }
