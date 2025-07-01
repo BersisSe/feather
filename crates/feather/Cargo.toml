@@ -13,7 +13,7 @@ categories = ["web-programming", "network-programming"]
 [dependencies]
 anymap = { workspace = true }
 chrono = { workspace = true }
-feather-runtime = { workspace = true, features = ["serde"]}
+feather-runtime = { workspace = true}
 jsonwebtoken = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
