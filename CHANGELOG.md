@@ -24,8 +24,6 @@ This is a major update focused on ergonomics, documentation, and modernization a
 - Logger initialization in `App::new()` is now robust (uses `Once`), user-configurable, and does not interfere with user code.
 - Documentation and examples polished for clarity, accuracy, and modern best practices.
 
-**Feather Runtime**
-- README rewritten for clarity, technical depth, and a more personal Outdated references to thread pools removed.
 
 
 ### Performance
