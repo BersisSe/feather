@@ -1,5 +1,8 @@
 use feather::{App, middleware, next};
 
+// Example: Dynamic route parameters with Feather
+// This demonstrates how to define and extract a dynamic path parameter (e.g., /users/:id).
+
 fn main() {
     let mut app = App::new();
     // Define a Route With a Dynamic Path

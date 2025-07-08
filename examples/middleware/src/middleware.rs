@@ -1,4 +1,4 @@
-use feather::{middlewares::Middleware, next};
+use feather::{middlewares::Middleware, next,info};
 
 // Middlewares can be any type that implements the `Middleware` Trait
 pub struct MyMiddleware(pub String);
@@ -7,7 +7,7 @@ pub struct MyMiddleware(pub String);
 impl Middleware for MyMiddleware {
     fn handle(&self, _request: &mut feather::Request, _response: &mut feather::Response, _ctx: &mut feather::AppContext) -> feather::Outcome {
         // Structs also have the `self` parameter but its behind a non mutuable referance so you cant just mutate the struct
-        println!("Hii I am a Struct Middleware and this is my data: {}", self.0);
+        info!("Hii I am a Struct Middleware and this is my data: {}", self.0);
 
         next!()
     }

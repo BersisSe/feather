@@ -10,6 +10,7 @@ pub enum QueueFlow<T> {
 
 /// A thread-safe queue that allows blocking and unblocking operations.
 /// This queue is designed to be used in a multi-threaded environment.
+#[repr(C)]
 pub struct Queue<T> {
     /// A mutex to protect access to the queue
     /// This ensures that only one thread can access the queue at a time.

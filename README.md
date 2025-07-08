@@ -24,10 +24,11 @@
   Feather is multithreaded by default, running on **Feather-Runtime**.
   
 
-## How it works behind the scenes:  
-Every request is given a thread from the server's threadpool and that thread is responsible for returning the response to that request.  
-So you can run long running tasks on another thread in the middlewares, but the response can only be returned from the middleware the request is accepted on.  
-If you want to go deeper take a look at [Feather-Runtime](./crates/feather-runtime)  
+
+
+## How it works behind the scenes
+
+Feather is powered by **Feather-Runtime**, a custom runtime built for high concurrency and low latency without using Rust's async/await. Each request is handled by a lightweight coroutine, enabling thousands of concurrent connections with simple, synchronous code. For more technical details, see [Feather-Runtime](./crates/feather-runtime).
 
 ---
 
@@ -37,23 +38,26 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "~0.4"
+feather = "~0.5"
 ```
 
 ---
 
 ## Quick Example
 
+
 ```rust
-use feather::middlewares::builtins;
-use feather::{App, next, middleware};
+use feather::{App, middleware_fn};
+
+#[middleware_fn]
+fn hello() -> feather::Outcome {
+    res.send_text("Hello, world!");
+    next!()
+}
+
 fn main() {
     let mut app = App::new();
-    app.get("/", middleware!(|_req, res, _ctx| {
-        res.send_text("Hello, world!");
-        next!()
-    }));
-    app.use_middleware(builtins::Logger);
+    app.get("/", hello);
     app.listen("127.0.0.1:5050");
 }
 ```
@@ -66,34 +70,46 @@ That’s all — no async.
 
 Middleware is the heart of Feather. You may write it as a closure (using the `middleware!` macro), a struct, or chain them together:
 
+
 ```rust
-use feather::{App, next, middleware};
+use feather::{App, middleware_fn};
+
+#[middleware_fn]
+fn log_middleware() -> feather::Outcome {
+    println!("Custom global middleware!");
+    next!()
+}
+
+#[middleware_fn]
+fn hello() -> feather::Outcome {
+    res.send_text("Hello, world!");
+    next!()
+}
 
 fn main() {
     let mut app = App::new();
-    app.use_middleware(middleware!(|_req, _res, _ctx| {
-        println!("Custom global middleware!");
-        next!()
-    }));
-    app.get("/", middleware!(|_req, res, _ctx| {
-        res.send_text("Hello, world!");
-        next!()
-    }));
+    app.use_middleware(log_middleware);
+    app.get("/", hello);
     app.listen("127.0.0.1:5050");
 }
 ```
 
 Or as a struct:
 
+
 ```rust
-use feather::{middlewares::Middleware, next};
-struct Custom;
-impl Middleware for Custom {
-    fn handle(&self, req: &mut feather::Request, res: &mut feather::Response, ctx: &mut feather::AppContext) -> feather::Outcome {
-        println!("Custom struct middleware!");
+use feather::{middleware_fn, Request, Response, AppContext, Middleware, next, info};
+
+struct CustomMiddleware;
+
+impl Middleware for CustomMiddleware {
+    fn handle(&self, _request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> feather::Outcome {
+        info!("Hii I am a Struct Middleware and this is my data: {}", self.0);
         next!()
     }
 }
+
+
 ```
 
 ---
@@ -102,19 +118,24 @@ impl Middleware for Custom {
 
 Feather's Context API allows you to manage application-wide state without extractors or macros.
 
+
 ```rust
-use feather::{next, App, middleware};
+use feather::{App, middleware_fn};
 #[derive(Debug)]
 struct Counter { pub count: i32 }
+
+#[middleware_fn]
+fn count() -> feather::Outcome {
+    let counter = ctx.get_mut_state::<Counter>().unwrap();
+    counter.count += 1;
+    res.send_text(format!("Counted! {}", counter.count));
+    next!()
+}
+
 fn main() {
     let mut app = App::new();
     app.context().set_state(Counter { count: 0 });
-    app.get("/", middleware!(|_req, res, ctx| {
-        let counter = ctx.get_mut_state::<Counter>().unwrap();
-        counter.count += 1;
-        res.send_text(format!("Counted! {}", counter.count));
-        next!()
-    }));
+    app.get("/", count);
     app.listen("127.0.0.1:5050");
 }
 ```
@@ -130,19 +151,52 @@ Feather has a native JWT module activated using a cargo feature `jwt`:
 feather = { version = "*", features = ["jwt"] }
 ```
 
+
 ```rust
-use feather::jwt::{generate_jwt, with_jwt_auth};
-use feather::{App, next};
+use feather::{App, jwt_required, middleware_fn};
+use feather::jwt::{JwtManager, SimpleClaims};
+
+#[middleware_fn]
+fn token_route() -> feather::Outcome {
+    let token = ctx.jwt().generate_simple("user", 1)?;
+    res.send_text(format!("Token: {}", token));
+    next!()
+}
+
+#[jwt_required]
+#[middleware_fn]
+fn protected(claims: SimpleClaims) -> feather::Outcome {
+    res.send_text(format!("Hello, {}!", claims.sub));
+    next!()
+}
+
 fn main() {
     let mut app = App::new();
-    app.get("/auth", with_jwt_auth("secretcode", |_req, res, _ctx, claim| {
-        println!("Claim: {:?}", claim);
-        res.send_text("Hello, JWT!");
-        next!()
-    }));
-    app.listen("127.0.0.1:8080")
+    let manager = JwtManager::new("secretcode");
+    app.context().set_jwt(manager);
+    app.get("/token", token_route);
+    app.get("/auth", protected);
+    app.listen("127.0.0.1:8080");
 }
 ```
+---
+
+## Logging
+When you create a new Feather application, it initializes the logger by default.
+
+
+```rust
+fn main() {
+    let mut app = App::new();
+    info!("Feather app ready to serve requests!");
+    // Your app setup here
+    app.listen("127.0.1:5050");
+    
+}
+```
+if you don't want it to be initialized, you can disable it by create a App with `without_logger` method
+
+```rust
 
 ---
 

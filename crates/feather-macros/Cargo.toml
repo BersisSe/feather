@@ -1,0 +1,17 @@
+[package]
+name = "feather-macros"
+version = "0.1.0"
+edition = "2024"
+authors = ["Bersis Sevimli"]
+description = "Proc-macros for Feather framework"
+license = "MIT"
+
+[dependencies]
+quote = "1.0"
+syn = "2.0"
+
+[lib]
+proc-macro = true
+crate-type = ["proc-macro"]
+[features]
+jwt = []

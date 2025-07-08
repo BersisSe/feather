@@ -3,7 +3,7 @@
 //! //! The POST handler expects a JSON body with a "username" field and responds accordingly.
 //! //! The server listens on port 5050.
 
-use feather::{App, AppContext, Request, Response, info, json, middleware, next};
+use feather::{info, json, middleware, middleware_fn, next, App};
 
 fn main() {
     // Lets Create a App instance named api
@@ -49,7 +49,8 @@ fn main() {
 
 // Handler Can Also Be Functions Like this
 // This function will be called when a GET request is made to the "/"
-fn get_handler(_req: &mut Request, res: &mut Response, _ctx: &mut AppContext) -> feather::Outcome {
+#[middleware_fn]
+fn get_handler() {
     res.send_html("<h1>Hello I am an Feather Api</h1>");
     next!()
 }

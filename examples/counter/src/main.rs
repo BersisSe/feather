@@ -4,6 +4,16 @@ use feather::{App, middleware, next};
 struct Counter {
     pub count: i32,
 }
+impl Counter {
+    // Increment the counter
+    pub fn increment(&mut self) {
+        self.count += 1;
+    }
+    // Decrement the counter
+    pub fn decrement(&mut self) {
+        self.count -= 1;
+    }
+}
 
 fn main() {
     let mut app = App::new();
@@ -27,6 +37,28 @@ fn main() {
         middleware!(|_req, res, ctx| {
             let counter = ctx.get_state::<Counter>().unwrap();
             res.send_text(counter.count.to_string());
+            next!()
+        }),
+    );
+
+    // Route to increment the counter
+    app.post(
+        "/increment",
+        middleware!(|_req, res, ctx| {
+            let counter = ctx.get_state_mut::<Counter>().unwrap();
+            counter.increment();
+            res.send_text(format!("Counter incremented: {}", counter.count));
+            next!()
+        }),
+    );
+
+    // Route to decrement the counter
+    app.post(
+        "/decrement",
+        middleware!(|_req, res, ctx| {
+            let counter = ctx.get_state_mut::<Counter>().unwrap();
+            counter.decrement();
+            res.send_text(format!("Counter decremented: {}", counter.count));
             next!()
         }),
     );

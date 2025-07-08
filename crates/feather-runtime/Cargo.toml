@@ -1,6 +1,6 @@
 [package]
 name = "feather-runtime"
-version = "0.3.3"
+version = "0.4.0"
 edition = "2024"
 authors = ["Bersis Sevimli"]
 description = "Web Server Runtime for Feather"
@@ -19,6 +19,8 @@ serde_urlencoded = { workspace = true}
 thiserror = { workspace = true }
 urlencoding = {workspace = true}
 parking_lot ={ workspace = true}
+may = { workspace = true }
+socket2 = "0.5.10"
 
 [dev-dependencies]
 simple_logger = "5.0.0"
@@ -28,3 +30,5 @@ default = ["full"]
 full = ["json","log"]
 log = ["dep:log",]
 json = ["dep:serde_json"]
+
+

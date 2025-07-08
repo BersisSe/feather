@@ -1,6 +1,7 @@
 /// Use of the AppContext State Managment with Sqlite
+/// NOTE: This example requires the SQLite installed on your system.
 // Import Our Dependencies
-use feather::{App, AppContext, Outcome, Request, Response, error, info, next};
+use feather::{App, warn, info, next, middleware_fn};
 use rusqlite::{Connection, Result};
 use serde_json::json;
 
@@ -29,7 +30,8 @@ fn main() -> Result<()> {
     Ok(())
 }
 // Post Route for loging in users
-fn login(req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome {
+#[middleware_fn]
+fn login() -> Outcome {
     let data = match req.json() {
         Ok(json) => json,
         Err(_) => {
@@ -65,13 +67,14 @@ fn login(req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome
                     "success":false,
                 }
             ));
-            error!("{e}")
+            warn!("{e}")
         }
     };
     next!()
 }
 // Get Route for listing users
-fn get_user(_req: &mut Request, res: &mut Response, ctx: &mut AppContext) -> Outcome {
+#[middleware_fn]
+fn get_user() -> Outcome {
     let db = ctx.get_state::<Connection>().unwrap(); // Again Take our Connection from the context. that is still a single connection
 
     // We can use the ? operator here because we are inside of a function that returns a Result

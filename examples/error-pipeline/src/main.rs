@@ -1,6 +1,7 @@
-use feather::{App, error, middleware, next};
+use feather::{App, warn, middleware, next};
 use std::{fs, io};
-/// Lets see how can we use the new error pipeline feature!
+/// Example: Error pipeline in Feather
+/// Demonstrates propagating errors from handlers and customizing error responses.
 fn main() {
     let mut app = App::new();
     app.get(
@@ -15,9 +16,9 @@ fn main() {
     // if there is no Custom Error handler set Framework will catch the error log it and send a 500 back to the client
     // We can attach a custom error handler with this function
     app.set_error_handler(Box::new(|err, _req, res| {
-        error!("A Error Accured");
+        warn!("A Error Accured");
         if err.is::<io::Error>() {
-            error!("Error is a IO error{err}");
+            warn!("Error is a IO error{err}");
             res.set_status(500).send_text("Missing data on the server? Internal Error");
         }
     }));

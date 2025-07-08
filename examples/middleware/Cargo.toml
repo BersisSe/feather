@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-feather = { workspace = true }
+feather = { workspace = true, features = ["log"] }

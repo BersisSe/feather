@@ -3,6 +3,38 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
+## [0.5.0] - 2025-07-08
+
+### Notes
+This is a major update focused on ergonomics, documentation, and modernization across Feather and Feather-Runtime. It introduces new macros, improved JWT support, and a friendlier developer experience.
+
+### Added
+**Feather Framework**
+- New `middleware_fn!` macro: Write middlewares with less boilerplate and more clarity.
+- New `jwt_required!` macro and `with_jwt_auth` function for JWT authentication, making it easier to protect routes and validate claims.
+- `App::without_logger` constructor for users who want to manage logging themselves.
+
+**Feather Runtime**
+- Expanded and clarified technical documentation, including a more approachable, human-friendly README.
+
+### Changed
+**Feather Framework**
+- All example and main code now use the `middleware_fn!` macro where possible.
+- JWT authentication examples and docs updated to use the new macro/function style.
+- Logger initialization in `App::new()` is now robust (uses `Once`), user-configurable, and does not interfere with user code.
+- Documentation and examples polished for clarity, accuracy, and modern best practices.
+
+**Feather Runtime**
+- README rewritten for clarity, technical depth, and a more personal Outdated references to thread pools removed.
+
+
+### Performance
+**Feather Runtime**
+- Significant performance improvements thanks to the coroutine-based engine (`may` crate). The server now handles thousands of concurrent connections with lower memory and CPU usage.
+- Non-blocking I/O and message queue optimizations keep the server responsive even under heavy load.
+- Removed outdated thread pool logic, further reducing overhead and simplifying concurrency.
+
+---
 ## [0.4.6] - 2025-06-17
 
 ### Notes

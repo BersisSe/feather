@@ -3,7 +3,8 @@ use crate::utils::error::Error;
 use bytes::Bytes;
 use http::{Extensions, HeaderMap, Method, Uri, Version};
 use std::str::FromStr;
-use std::{borrow::Cow, collections::HashMap, fmt, net::TcpStream};
+use std::{borrow::Cow, collections::HashMap, fmt};
+use std::net::TcpStream;
 use urlencoding::decode;
 
 /// Contains a incoming Http Request
@@ -28,35 +29,7 @@ pub struct Request {
     // Connection State(Keep-Alive OR Close) of the Request
     pub(crate) connection: Option<ConnectionState>,
 }
-impl Clone for Request {
-    fn clone(&self) -> Self {
-        if let Some(tcp) = &self.stream {
-            Self {
-                stream: Some(tcp.try_clone().unwrap()),
-                method: self.method.clone(),
-                uri: self.uri.clone(),
-                version: self.version.clone(),
-                headers: self.headers.clone(),
-                body: self.body.clone(),
-                extensions: self.extensions.clone(),
-                connection: self.connection.clone(),
-                params: self.params.clone(),
-            }
-        } else {
-            Self {
-                stream: None,
-                method: self.method.clone(),
-                uri: self.uri.clone(),
-                version: self.version.clone(),
-                headers: self.headers.clone(),
-                body: self.body.clone(),
-                extensions: self.extensions.clone(),
-                connection: self.connection.clone(),
-                params: self.params.clone(),
-            }
-        }
-    }
-}
+
 
 impl Request {
     /// Parses a Request from raw bytes if parsing fails returns a error

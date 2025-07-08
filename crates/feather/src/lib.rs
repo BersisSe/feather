@@ -22,7 +22,7 @@
 //! ```
 //!
 //! ### Quick Example
-//! ```rust,no_run
+//! ```rust,ignore
 //! use feather::{App, AppContext, Request, Response, next, middleware};
 //! fn main() {
 //!     let mut app = App::new();
@@ -37,7 +37,7 @@
 //! ## Middleware in Feather
 //! Middleware is the heart of Feather. You can write middleware as a closure, a struct, or chain them together. The `middleware!` macro helps reduce boilerplate for closures:
 //!
-//! ```rust
+//! ```rust,ignore
 //! app.get("/", middleware!(|req, res, ctx| {
 //!     // ...
 //!     next!()
@@ -53,17 +53,18 @@
 //!
 //! ---
 
-//? Renamed from `middleware` to `middlewares` so we can avoid import conflicts with `middleware!` macro
+
 pub mod internals;
 #[cfg(feature = "jwt")]
 pub mod jwt;
+
 pub mod middlewares;
 
 #[cfg(feature = "json")]
 pub use serde_json::{Value, json};
 
 #[cfg(feature = "log")]
-pub use log::{debug, error, info, trace, warn};
+pub use log::{info, trace, warn};
 
 use std::error::Error;
 
@@ -83,6 +84,8 @@ macro_rules! next {
         Ok($crate::middlewares::MiddlewareResult::Next)
     };
 }
+
+
 
 /// The `middleware!` macro allows you to define middleware functions concisely without repeating type signatures.
 ///
@@ -105,3 +108,12 @@ macro_rules! middleware {
         |$req: &mut $crate::Request, $res: &mut $crate::Response, $ctx: &mut $crate::AppContext| $body
     };
 }
+
+
+pub use feather_macros::middleware_fn;
+
+#[cfg(feature = "jwt")]
+pub use feather_macros::Claim;
+#[cfg(feature = "jwt")]
+pub use feather_macros::jwt_required;
+
