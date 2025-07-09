@@ -1,6 +1,6 @@
 [package]
 name = "feather"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 repository = "https://github.com/BersisSe/feather"
 description = "Feather: A minimal HTTP framework for Rust"

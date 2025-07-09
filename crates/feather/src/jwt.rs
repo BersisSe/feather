@@ -36,12 +36,12 @@ impl Claim for SimpleClaims {
 /// Helper struct to encode/decode JWT tokens using a shared secret
 #[derive(Debug)]
 pub struct JwtManager {
-    secret: &'static str,
+    secret: String,
 }
 
 impl JwtManager {
     /// Create a new JwtManager with a secret key
-    pub fn new(secret: &'static str) -> Self {
+    pub fn new(secret: String) -> Self {
         Self { secret }
     }
 
