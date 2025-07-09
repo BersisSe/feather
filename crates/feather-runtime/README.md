@@ -23,7 +23,7 @@ It replaces `tiny-http` with a modern, coroutine-based runtime—no async/await 
 
 ## 🛠️ How It Works
 
-I wanted something that “just works” for high concurrency, but doesn’t make you write async spaghetti. Here’s the gist:
+I wanted something that “just works” for high concurrency, but doesn’t make you write async.
 
 - **Coroutines, Not Threads:** Instead of a thread per connection, every connection gets a coroutine (thanks, `may`). Coroutines are super lightweight, so you can have thousands running at once.
 - **Non-blocking, Event-driven:** Sockets are non-blocking. When a request comes in, it’s handed to a coroutine. If that coroutine needs to wait for I/O, it just yields and lets others do their thing. No wasted CPU, no blocking the whole server.
@@ -32,7 +32,7 @@ I wanted something that “just works” for high concurrency, but doesn’t mak
 - **Socket Tuning:** Want to tweak how the server listens? Use `socket2` to set backlog, nodelay, buffer sizes, etc.
 
 **In summary:**
-> Every request gets its own coroutine. You can spawn background tasks or run blocking code, and Feather-Runtime will keep things fast and responsive—no async/await or lifetime headaches.
+> Every request gets its own coroutine. You can spawn background tasks or run blocking code, and Feather-Runtime will keep things fast and responsive no async/await or lifetime headaches.
 
 ---
 
