@@ -100,7 +100,7 @@ Or as a struct:
 ```rust
 use feather::{middleware_fn, Request, Response, AppContext, Middleware, next, info};
 
-struct CustomMiddleware;
+struct CustomMiddleware(String);
 
 impl Middleware for CustomMiddleware {
     fn handle(&self, _request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> feather::Outcome {
