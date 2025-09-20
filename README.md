@@ -47,7 +47,7 @@ feather = "~0.5"
 
 
 ```rust
-use feather::{App, middleware_fn};
+use feather::{App, middleware_fn, next};
 
 #[middleware_fn]
 fn hello() -> feather::Outcome {
@@ -72,7 +72,7 @@ Middleware is the heart of Feather. You may write it as a closure (using the `mi
 
 
 ```rust
-use feather::{App, middleware_fn};
+use feather::{App, middleware_fn, next};
 
 #[middleware_fn]
 fn log_middleware() -> feather::Outcome {
@@ -120,7 +120,7 @@ Feather's Context API allows you to manage application-wide state without extrac
 
 
 ```rust
-use feather::{App, middleware_fn};
+use feather::{App, middleware_fn, next};
 #[derive(Debug)]
 struct Counter { pub count: i32 }
 
@@ -153,7 +153,7 @@ feather = { version = "*", features = ["jwt"] }
 
 
 ```rust
-use feather::{App, jwt_required, middleware_fn};
+use feather::{App, jwt_required, middleware_fn, next};
 use feather::jwt::{JwtManager, SimpleClaims};
 
 #[middleware_fn]
