@@ -196,8 +196,6 @@ fn main() {
 ```
 if you don't want it to be initialized, you can disable it by create a App with `without_logger` method
 
-```rust
-
 ---
 
 ## Goals
