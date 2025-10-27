@@ -1,30 +1,23 @@
 use crate::http::{Request, Response};
-use crate::utils::{Message, Queue};
 use std::io::{self, BufReader, BufWriter, Read, Result as IoResult, Write};
 use std::cell::RefCell;
-use std::net::{Ipv4Addr, ToSocketAddrs};
+
+use std::net::ToSocketAddrs;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use may::go;
-use std::net::TcpListener;
-use std::net::SocketAddr;
-use socket2::{Socket, Domain, Type, Protocol};
+use may::net::TcpListener;
 use may::Config;
 
-pub struct EngineConfig {
-    /// The Address of the Engine(IP,Port)
-    pub address: (Ipv4Addr, u16),
-}
 
-/// The Engine is the main struct of the Runtime.  
+/// The Server is the main struct of the Runtime.  
 /// It drives the runtime Accepting Requests Answering them etc.
-pub struct Engine {
+pub struct Server {
     listener: TcpListener,
-    messages: Arc<Queue<Message>>,
     shutdown_flag: Arc<AtomicBool>,
 }
 
-impl Engine {
+impl Server {
     /// Creates a new `Engine` instance without a config
     pub fn new(addr: impl ToSocketAddrs) -> Self {
         // Bigger Pools for better Concurency
@@ -33,20 +26,7 @@ impl Engine {
         
         // Advanced socket2 usage for tuning
         let addr = addr.to_socket_addrs().unwrap().next().expect("Invalid address");
-        let domain = match addr {
-            SocketAddr::V4(_) => Domain::IPV4,
-            SocketAddr::V6(_) => Domain::IPV6,
-        };
-        let socket = Socket::new(domain, Type::STREAM, Some(Protocol::TCP)).expect("Failed to create socket");
-        socket.set_reuse_address(true).ok();
-        #[cfg(unix)]
-        socket.set_reuse_port(true).ok();
-        socket.set_nodelay(true).ok();
-        socket.set_recv_buffer_size(1 << 20).ok(); // 1MB
-        socket.set_send_buffer_size(1 << 20).ok(); // 1MB
-        let backlog = 2048;
-        socket.bind(&addr.into()).expect("Failed to bind socket");
-        socket.listen(backlog).expect("Failed to listen on socket");
+       
         let listener: TcpListener = socket.into();
         listener.set_nonblocking(true).expect("Failed to set nonblocking");
 

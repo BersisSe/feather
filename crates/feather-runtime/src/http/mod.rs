@@ -1,5 +1,6 @@
 mod request;
 mod response;
+mod errors;
 use std::ops::Deref;
 
 pub use request::Request;
