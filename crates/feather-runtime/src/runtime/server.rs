@@ -71,11 +71,13 @@ impl Server {
                     });
                 }
                 Err(e) => {
+                    #[cfg(feature = "log")]
                     warn!("Failed to accept connection: {}", e);
                 }
             }
         }
 
+        #[cfg(feature = "log")]
         info!("Server shutting down");
         Ok(())
     }

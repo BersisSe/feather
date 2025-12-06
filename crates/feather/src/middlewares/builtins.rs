@@ -2,6 +2,7 @@ use super::common::Middleware;
 use crate::{Outcome, internals::AppContext, next};
 
 use feather_runtime::http::{Request, Response};
+#[cfg(feature = "log")]
 use log::info;
 use std::{
     fs::{self, File},
@@ -14,6 +15,7 @@ pub struct Logger;
 
 impl Middleware for Logger {
     fn handle(&self, request: &mut Request, _: &mut Response, _: &AppContext) -> Outcome {
+        #[cfg(feature = "log")]
         info!("{} {}", request.method, request.uri.path(),);
         next!()
     }
