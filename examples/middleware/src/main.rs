@@ -1,4 +1,4 @@
-use feather::{chain, middleware, middlewares::builtins, next, App, middleware_fn,info};
+use feather::{App, chain, info, middleware, middleware_fn, middlewares::builtins, next};
 mod middleware;
 use middleware::MyMiddleware;
 fn main() {

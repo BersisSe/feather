@@ -2,6 +2,7 @@ use super::common::Middleware;
 use crate::{Outcome, internals::AppContext, next};
 
 use feather_runtime::http::{Request, Response};
+use log::info;
 use std::{
     fs::{self, File},
     io::{self, Read},
@@ -12,8 +13,8 @@ use std::{
 pub struct Logger;
 
 impl Middleware for Logger {
-    fn handle(&self, request: &mut Request, _: &mut Response, _: &mut AppContext) -> Outcome {
-        println!("Request: {request}");
+    fn handle(&self, request: &mut Request, _: &mut Response, _: &AppContext) -> Outcome {
+        info!("{} {}", request.method, request.uri.path(),);
         next!()
     }
 }
@@ -32,8 +33,8 @@ impl Cors {
 }
 
 impl Middleware for Cors {
-    fn handle(&self, _: &mut Request, response: &mut Response, _: &mut AppContext) -> Outcome {
-        response.add_header("Access-Control-Allow-Origin", self.0.as_deref().unwrap_or("*"));
+    fn handle(&self, _: &mut Request, response: &mut Response, _: &AppContext) -> Outcome {
+        response.add_header("Access-Control-Allow-Origin", self.0.as_deref().unwrap_or("*"))?;
         next!()
     }
 }
@@ -54,7 +55,10 @@ impl ServeStatic {
             _ => 500, // Internal Server Error for other IO issues
         };
 
-        eprintln!("ServeStatic: Error accessing path {:?} (Base: {}): {} - Responding with {}", path, &self.0, e, status_code);
+        eprintln!(
+            "ServeStatic: Error accessing path {:?} (Base: {}): {} - Responding with {}",
+            path, &self.0, e, status_code
+        );
 
         response.set_status(status_code);
         match status_code {
@@ -82,7 +86,7 @@ impl ServeStatic {
 }
 
 impl Middleware for ServeStatic {
-    fn handle(&self, request: &mut Request, response: &mut Response, _: &mut AppContext) -> Outcome {
+    fn handle(&self, request: &mut Request, response: &mut Response, _: &AppContext) -> Outcome {
         let requested_path = request.uri.path().trim_start_matches('/');
         let base_dir = Path::new(&self.0);
         let mut target_path = base_dir.join(requested_path);
@@ -94,7 +98,12 @@ impl Middleware for ServeStatic {
                     Ok(canonical_base) => {
                         if !canonical_path.starts_with(&canonical_base) {
                             // Path tried to escape the base directory!
-                            eprintln!("ServeStatic: Forbidden path traversal attempt: Requested '{}', Resolved '{}' outside base '{}'", requested_path, canonical_path.display(), canonical_base.display());
+                            eprintln!(
+                                "ServeStatic: Forbidden path traversal attempt: Requested '{}', Resolved '{}' outside base '{}'",
+                                requested_path,
+                                canonical_path.display(),
+                                canonical_base.display()
+                            );
                             response.set_status(403);
                             response.send_text("403 Forbidden");
                             return next!();
@@ -123,8 +132,8 @@ impl Middleware for ServeStatic {
                             match file.read_to_end(&mut buffer) {
                                 Ok(_) => {
                                     let content_type = Self::guess_content_type(&target_path);
-                                    response.add_header("Content-Type", content_type);
-                                    response.add_header("Content-Length", &buffer.len().to_string());
+                                    response.add_header("Content-Type", content_type)?;
+                                    response.add_header("Content-Length", &buffer.len().to_string())?;
                                     response.send_bytes(buffer);
                                 }
                                 Err(e) => {

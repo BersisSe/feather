@@ -38,7 +38,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "~0.5"
+feather = "~0.6"
 ```
 
 ---
@@ -98,12 +98,12 @@ Or as a struct:
 
 
 ```rust
-use feather::{middleware_fn, Request, Response, AppContext, Middleware, next, info};
+use feather::{middleware_fn, Request, Response, AppContext, Middleware, next, info};""
 
 struct CustomMiddleware(String);
 
 impl Middleware for CustomMiddleware {
-    fn handle(&self, _request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> feather::Outcome {
+    fn handle(&self, _request: &mut Request, _response: &mut Response, _ctx: &AppContext) -> feather::Outcome {
         info!("Hii I am a Struct Middleware and this is my data: {}", self.0);
         next!()
     }

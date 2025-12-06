@@ -1,10 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input,  ItemFn };
 #[cfg(feature = "jwt")]
 use syn::{Data, DeriveInput, Fields};
-
-
+use syn::{ItemFn, parse_macro_input};
 
 /// This macro derives the `Claim` trait for a struct, allowing it to be used as JWT claims.
 /// It checks for fields annotated with `#[required]` and `#[exp]` to
@@ -16,7 +14,7 @@ pub fn derive_claim(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
     let mut checks = Vec::new();
-    
+
     if let Data::Struct(data_struct) = &input.data {
         if let Fields::Named(fields) = &data_struct.fields {
             for field in &fields.named {
@@ -52,7 +50,6 @@ pub fn derive_claim(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-
 /// This macro defines a middleware function that can be used in Feather applications.  
 /// It allows you to write middleware functions without repeating the type signatures for request, response, and context.
 /// Example:
@@ -73,7 +70,11 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_name = &sig.ident;
 
     let expanded = quote! {
-        #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &mut feather::AppContext) -> feather::Outcome {
+        #vis fn #fn_name(
+            req: &mut feather::Request,
+            res: &mut feather::Response,
+            ctx: &feather::AppContext
+        ) -> feather::Outcome {
             #block
         }
     };
@@ -95,7 +96,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
 /// }
 #[cfg(feature = "jwt")]
 #[proc_macro_attribute]
-pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream{
+pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
     let vis = &input.vis;
@@ -117,17 +118,12 @@ pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream{
     let (claims_name, claims_type) = match claims_ident {
         Some(x) => x,
         None => {
-            return syn::Error::new_spanned(
-                &input.sig,
-                "expected a `claims: T` argument for #[jwt_required]",
-            )
-            .to_compile_error()
-            .into();
+            return syn::Error::new_spanned(&input.sig, "expected a `claims: T` argument for #[jwt_required]").to_compile_error().into();
         }
     };
 
     let expanded = quote! {
-        #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &mut feather::AppContext) -> feather::Outcome {
+        #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
             let manager = ctx.jwt();
             let token = match req
                 .headers

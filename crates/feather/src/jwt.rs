@@ -1,8 +1,8 @@
 use crate::{AppContext, Outcome, Request, Response, middlewares::Middleware, next};
-use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-pub use jsonwebtoken::errors::ErrorKind;
 pub use jsonwebtoken::errors::Error;
+pub use jsonwebtoken::errors::ErrorKind;
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, encode};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 /// Represents a claim that can be validated after decoding the token
 /// You can override `validate` if you want to check required fields or expiry etc.
 pub trait Claim: DeserializeOwned {
@@ -22,11 +22,7 @@ impl Claim for SimpleClaims {
         if self.sub.is_empty() {
             return Err(Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken));
         }
-        if self.exp < ::std::time::SystemTime::now()
-            .duration_since(::std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as usize
-        {
+        if self.exp < ::std::time::SystemTime::now().duration_since(::std::time::UNIX_EPOCH).unwrap().as_secs() as usize {
             return Err(Error::from(jsonwebtoken::errors::ErrorKind::ExpiredSignature));
         }
         Ok(())
@@ -34,7 +30,7 @@ impl Claim for SimpleClaims {
 }
 
 /// Helper struct to encode/decode JWT tokens using a shared secret
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JwtManager {
     secret: String,
 }
@@ -42,29 +38,21 @@ pub struct JwtManager {
 impl JwtManager {
     /// Create a new JwtManager with a secret key
     pub fn new(secret: String) -> Self {
-        Self { secret }
+        Self {
+            secret,
+        }
     }
 
     /// Decode and validate a token into claims
-    pub fn decode<T: for<'de> Deserialize<'de> + Claim>(&self, token: &str)
-        -> Result<T, jsonwebtoken::errors::Error>
-    {
-        let data = jsonwebtoken::decode::<T>(
-            token,
-            &DecodingKey::from_secret(self.secret.as_bytes()),
-            &Validation::default(),
-        )?;
+    pub fn decode<T: for<'de> Deserialize<'de> + Claim>(&self, token: &str) -> Result<T, jsonwebtoken::errors::Error> {
+        let data = jsonwebtoken::decode::<T>(token, &DecodingKey::from_secret(self.secret.as_bytes()), &Validation::default())?;
         data.claims.validate()?;
         Ok(data.claims)
     }
 
     /// Encode a claims object into a token
     pub fn encode<T: Serialize>(&self, claims: &T) -> Result<String, jsonwebtoken::errors::Error> {
-        encode(
-            &Header::default(),
-            claims,
-            &EncodingKey::from_secret(self.secret.as_bytes()),
-        )
+        encode(&Header::default(), claims, &EncodingKey::from_secret(self.secret.as_bytes()))
     }
 
     /// Creates a basic token with only `sub` and `exp` fields
@@ -72,10 +60,7 @@ impl JwtManager {
     pub fn generate_simple(&self, subject: &str, ttl_hours: i64) -> Result<String, jsonwebtoken::errors::Error> {
         let claims = SimpleClaims {
             sub: subject.to_owned(),
-            exp: chrono::Utc::now()
-                .checked_add_signed(chrono::Duration::hours(ttl_hours))
-                .unwrap()
-                .timestamp() as usize,
+            exp: chrono::Utc::now().checked_add_signed(chrono::Duration::hours(ttl_hours)).unwrap().timestamp() as usize,
         };
 
         self.encode(&claims)
@@ -89,19 +74,14 @@ impl JwtManager {
 /// to the handler function.
 ///
 /// If token is invalid or expired, a 401 error is returned.
-pub fn with_jwt_auth<T, F>(handler: F) -> impl Middleware
+pub fn with_jwt_auth<T, F: Send + Sync>(handler: F) -> impl Middleware
 where
     T: for<'de> serde::de::Deserialize<'de> + Claim + 'static,
-    F: Fn(&mut Request, &mut Response, &mut AppContext, T) -> Outcome,
+    F: Fn(&mut Request, &mut Response, &AppContext, T) -> Outcome,
 {
-    move |req: &mut Request, res: &mut Response, ctx: &mut AppContext| -> Outcome {
+    move |req: &mut Request, res: &mut Response, ctx: &AppContext| -> Outcome {
         let manager = ctx.jwt();
-        let token = match req
-            .headers
-            .get("Authorization")
-            .and_then(|h| h.to_str().ok())
-            .and_then(|h| h.strip_prefix("Bearer "))
-        {
+        let token = match req.headers.get("Authorization").and_then(|h| h.to_str().ok()).and_then(|h| h.strip_prefix("Bearer ")) {
             Some(t) => t,
             None => {
                 res.set_status(401);

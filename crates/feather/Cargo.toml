@@ -1,6 +1,6 @@
 [package]
 name = "feather"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2024"
 repository = "https://github.com/BersisSe/feather"
 description = "Feather: A minimal HTTP framework for Rust"
@@ -8,20 +8,21 @@ authors = ["Bersis Sevimli"]
 license = "MIT"
 readme = "README.md"
 keywords = ["http", "web", "framework", "minimal", "rust"]
-categories = ["web-programming", "network-programming"]
+categories = ["web-programming", "network-programming","web-framework"]
 
 [dependencies]
-anymap = { workspace = true }
 chrono = { workspace = true }
 feather-runtime = { workspace = true}
+feather-macros = {workspace = true}
 jsonwebtoken = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
 log ={ workspace = true, optional = true }
-feather-macros = {workspace = true}
-simple_logger = { version = "5.0", optional = true }
+tracing-subscriber = { version = "0.3", optional = true }
+parking_lot = { workspace = true }
+
 [features]
-default = ["json","log","jwt"]
-log = ["dep:log","dep:simple_logger", "feather-runtime/log"]
+default = ["log"]
+log = ["dep:log","dep:tracing-subscriber", "feather-runtime/log"]
 json = ["dep:serde", "dep:serde_json", "feather-runtime/json"]
 jwt = ["dep:jsonwebtoken","json", "feather-macros/jwt"]
