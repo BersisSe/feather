@@ -25,7 +25,7 @@ num_cpus ={ version = "1.17"}
 
 [dev-dependencies]
 simple_logger = "5.0.0"
-serde = {version = "*", features = ["derive"]}
+serde = {version = "1.0", features = ["derive"]}
 
 [features]
 default = ["full"]
