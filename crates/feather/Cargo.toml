@@ -8,7 +8,7 @@ authors = ["Bersis Sevimli"]
 license = "MIT"
 readme = "README.md"
 keywords = ["http", "web", "framework", "minimal", "rust"]
-categories = ["web-programming", "network-programming","web-framework"]
+categories = ["web-programming", "network-programming"]
 
 [dependencies]
 chrono = { workspace = true }
