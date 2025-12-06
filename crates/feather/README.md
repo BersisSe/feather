@@ -47,7 +47,7 @@ feather = "~0.5"
 
 
 ```rust
-use feather::{App, middleware_fn};
+use feather::{App, middleware_fn, next};
 
 #[middleware_fn]
 fn hello() -> feather::Outcome {
@@ -72,7 +72,7 @@ Middleware is the heart of Feather. You may write it as a closure (using the `mi
 
 
 ```rust
-use feather::{App, middleware_fn};
+use feather::{App, middleware_fn, next};
 
 #[middleware_fn]
 fn log_middleware() -> feather::Outcome {
@@ -100,7 +100,7 @@ Or as a struct:
 ```rust
 use feather::{middleware_fn, Request, Response, AppContext, Middleware, next, info};
 
-struct CustomMiddleware;
+struct CustomMiddleware(String);
 
 impl Middleware for CustomMiddleware {
     fn handle(&self, _request: &mut Request, _response: &mut Response, _ctx: &mut AppContext) -> feather::Outcome {
@@ -120,7 +120,7 @@ Feather's Context API allows you to manage application-wide state without extrac
 
 
 ```rust
-use feather::{App, middleware_fn};
+use feather::{App, middleware_fn, next};
 #[derive(Debug)]
 struct Counter { pub count: i32 }
 
@@ -153,7 +153,7 @@ feather = { version = "*", features = ["jwt"] }
 
 
 ```rust
-use feather::{App, jwt_required, middleware_fn};
+use feather::{App, jwt_required, middleware_fn, next};
 use feather::jwt::{JwtManager, SimpleClaims};
 
 #[middleware_fn]
@@ -195,8 +195,6 @@ fn main() {
 }
 ```
 if you don't want it to be initialized, you can disable it by create a App with `without_logger` method
-
-```rust
 
 ---
 

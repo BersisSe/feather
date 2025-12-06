@@ -7,7 +7,6 @@ It replaces `tiny-http` with a modern, coroutine-based runtime—no async/await 
 ---
 
 
-
 ## 🚀 Features 
 
 - **Coroutines, Not Threads:** Thanks to the [`may`](https://github.com/Xudong-Huang/may) crate, every connection gets its own coroutine (a green thread). This means you can handle a ton of traffic without your server falling over.
@@ -25,7 +24,7 @@ It replaces `tiny-http` with a modern, coroutine-based runtime—no async/await 
 
 I wanted something that “just works” for high concurrency, but doesn’t make you write async.
 
-- **Coroutines, Not Threads:** Instead of a thread per connection, every connection gets a coroutine (thanks, `may`). Coroutines are super lightweight, so you can have thousands running at once.
+- **Coroutines, Not Threads:** Instead of a thread per connection, every connection gets a coroutine (thanks to, `may`). Coroutines are super lightweight, so you can have thousands running at once.
 - **Non-blocking, Event-driven:** Sockets are non-blocking. When a request comes in, it’s handed to a coroutine. If that coroutine needs to wait for I/O, it just yields and lets others do their thing. No wasted CPU, no blocking the whole server.
 - **Message Queues:** Requests go into a queue, and coroutines pick them up, process, and respond. This keeps things smooth and scalable.
 - **No async/await, No Lifetimes:** Write normal Rust. No async, no lifetimes, no pinning. The runtime handles all the tricky stuff.
@@ -67,7 +66,6 @@ If you're contributing to Feather but don't want to mess with low-level server i
 
 - [Feather Main Repo](https://github.com/BersisSe/feather)
 - [`may` Crate](https://github.com/Xudong-Huang/may)
-- [`socket2` Crate](https://docs.rs/socket2)
 
 ---
 
