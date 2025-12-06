@@ -6,5 +6,6 @@ publish = false
 
 [dependencies]
 feather = { workspace = true, features = ["json","log"] }
-rusqlite = { workspace = true, features = ["bundled"] }
+r2d2 ={ workspace = true}
+r2d2_sqlite ={ workspace = true, features = ["bundled"]}
 serde_json = { workspace = true }

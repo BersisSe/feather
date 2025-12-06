@@ -1,11 +1,126 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [0.6.0] - 2025-07-08
+
+### Overview
+A major release representing a complete architectural overhaul of Feather. The runtime has been rewritten from scratch with a focus on testability, performance, and direct May integration. State management has been redesigned for thread-safety, and the framework now includes comprehensive tests to prevent regressions. This is the most significant update since Feather's inception.
+
+### Added
+
+**Feather Framework**
+- `State<T>` wrapper for ergonomic mutex-based state management in `AppContext`
+- Comprehensive test suite for `AppContext` covering thread-safety, concurrent access, and type isolation
+- `with_mut()`, `with()` and `lock()` helper methods for safer state manipulation
+- Better error messages when state types are not found
+
+**Feather Runtime**
+- **NEW**: Comprehensive test suite covering core runtime functionality
+  - Request parsing tests
+  - Response building tests
+  - Service trait implementation tests
+  - Connection handling tests
+
+
+### Changed
+
+**Feather Framework**
+- **BREAKING**: `AppContext` completely rewritten without `anymap` dependency
+  - Now uses `TypeId`-based storage with `Arc<RwLock<HashMap>>`
+  - More predictable performance characteristics
+- **BREAKING**: All state stored in `AppContext` must be `Send + Sync`
+  - No more `Rc`, `RefCell`, or other single-threaded types
+  - Enables safe sharing across coroutines and threads
+- **BREAKING**: The Middleware Signature has been changed
+  - The macros are fixed so if you are using them you are good to go!
+  - But on functions you need to remove `&mut` from `AppContext`. `&mut AppContext` => `&AppContext`
+- Replaced `simple_logger` with `tracing-subscriber` for better concurrency support
+  - Fixes crashes when logging from coroutines on Windows
+  - Better performance in multi-threaded environments
+- Default May coroutine stack size increased from 2KB to 64KB
+  - Prevents stack overflows when using complex formatters(Like tracing)
+
+**Feather Runtime**
+- **MAJOR**: Complete architectural rewrite from the ground up
+  - Handler-based system replaced with flexible Service trait
+  - Direct integration with May's TCP primitives for better performance
+  - Comprehensive test coverage to prevent future regressions
+- Reduced memory allocations during request handling
+- Better cleanup of connection resources
+- Optimized request parsing pipeline
+- Reduced syscall overhead through native May TCP integration
+- Complete rewrite of the runtime architecture from the ground up
+  - Moved from handler-based&Thread-local architecture to Service trait&Fully-MultiThreaded pattern
+  - More modular and testable design
+  - Clearer separation of concerns
+- Now uses May's native TCP primitives (`may::net::TcpListener`, `may::net::TcpStream`)
+  - Direct integration with May's coroutine scheduler
+  - Better performance through reduced abstraction layers
+  - More efficient connection pooling and handling
+
+### Fixed
+
+**Feather Framework**
+- Fixed potential race conditions in `AppContext` state access
+- Improved pointer stability across coroutine boundaries
+
+
+### Performance
+
+**Feather Framework**
+- `AppContext::get_state()` now uses `Arc::downcast` instead of dynamic dispatch
+- Lock contention reduced through read-write lock usage
+- State cloning eliminated - all access is now reference-based
+
+**Feather Runtime**
+- Optimized request parsing for common cases
+- Reduced syscall overhead in connection handling
+
+### Migration Guide
+
+**AppContext State Types**
+```rust
+// Before (0.5.x) - ❌ No longer gives you mutable access
+
+app.context().set_state(counter);
+
+// After (0.6.0) - ✅ Use State wrapper
+use feather::State;
+app.context().set_state(State::new(counter));
+
+// In middleware
+let counter = ctx.get_state::<State<Counter>>();
+counter.with_mut(|c| c.increment());
+```
+
+**Logging**
+```rust
+// The framework now uses tracing internally
+// The log primatives : info!, warn! etc will still be re-exported from the feather crate.
+// but now you can use Tracing if you wish to!
+use tracing::info;
+
+info!("Request received"); // Better performance in coroutines
+```
+
+### Notes
+
+This was a quite the journey its been 5-6 months Rewriting the runtime was kinda chanllenging but now Feather has a better foundation with:
+
+- **100% rewritten runtime** - Service-based architecture replacing the old handler system
+- **Native May TCP** - Direct use of May's primitives for maximum performance  
+- **Comprehensive tests** - Both framework and runtime now have extensive test coverage, significantly reducing the likelihood of bugs making it to production
+- **Thread-safe by default** - All APIs are designed with concurrency in mind from the ground up
+
+
+Special thanks to everyone who reported issues, and contributed to making Feather more robust! 💝
+
 ---
 ## [0.5.0] - 2025-07-08
 
-### Notes
+### Overview
 This is a major update focused on ergonomics, documentation, and modernization across Feather and Feather-Runtime. It introduces new macros, improved JWT support, and a friendlier developer experience.
 
 ### Added

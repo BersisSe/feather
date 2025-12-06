@@ -1,4 +1,7 @@
+use feather::internals::State;
+use feather::middlewares::builtins::Logger;
 use feather::{App, middleware, next};
+
 // Create a couter struct to hold the state
 #[derive(Debug)]
 struct Counter {
@@ -17,17 +20,18 @@ impl Counter {
 
 fn main() {
     let mut app = App::new();
+    app.use_middleware(Logger);
     let counter = Counter {
         count: 0,
     };
     // Put the counter in the app context
-    app.context().set_state(counter);
+    app.context().set_state(State::new(counter));
 
     app.get(
         "/",
         middleware!(|_req, res, ctx| {
-            let counter = ctx.get_state::<Counter>().unwrap();
-            res.send_text(format!("Counter value: {}", counter.count));
+            let counter = ctx.get_state::<State<Counter>>();
+            res.send_text(format!("Counter value: {}", counter.lock().count));
             next!()
         }),
     );
@@ -35,8 +39,8 @@ fn main() {
     app.get(
         "/count",
         middleware!(|_req, res, ctx| {
-            let counter = ctx.get_state::<Counter>().unwrap();
-            res.send_text(counter.count.to_string());
+            let counter = ctx.get_state::<State<Counter>>();
+            res.send_text(counter.lock().count.to_string());
             next!()
         }),
     );
@@ -45,9 +49,11 @@ fn main() {
     app.post(
         "/increment",
         middleware!(|_req, res, ctx| {
-            let counter = ctx.get_state_mut::<Counter>().unwrap();
-            counter.increment();
-            res.send_text(format!("Counter incremented: {}", counter.count));
+            let counter = ctx.get_state::<State<Counter>>();
+            counter.with_mut_scope(|c| {
+                c.increment();
+                res.send_text(format!("Counter incremented: {}", c.count));
+            });
             next!()
         }),
     );
@@ -56,9 +62,11 @@ fn main() {
     app.post(
         "/decrement",
         middleware!(|_req, res, ctx| {
-            let counter = ctx.get_state_mut::<Counter>().unwrap();
-            counter.decrement();
-            res.send_text(format!("Counter decremented: {}", counter.count));
+            let counter = ctx.get_state::<State<Counter>>();
+            counter.with_mut_scope(|c| {
+                c.decrement();
+                res.send_text(format!("Counter decremented: {}", c.count));
+            });
             next!()
         }),
     );

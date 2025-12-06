@@ -1,4 +1,4 @@
-use feather::{App, warn, middleware, next};
+use feather::{App, middleware, next, warn};
 use std::{fs, io};
 /// Example: Error pipeline in Feather
 /// Demonstrates propagating errors from handlers and customizing error responses.
@@ -19,7 +19,7 @@ fn main() {
         warn!("A Error Accured");
         if err.is::<io::Error>() {
             warn!("Error is a IO error{err}");
-            res.set_status(500).send_text("Missing data on the server? Internal Error");
+            res.set_status(500).send_text("Missing data on the server, Internal Error");
         }
     }));
     // This way we can handle Errors Gracefully and safely.

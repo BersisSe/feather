@@ -1,8 +1,7 @@
-use super::ConnectionState;
 use std::io;
 /// Simple alias for error results in this module.
 /// We use a boxed std error to avoid depending on the removed crate error type.
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type Error = Box<dyn std::error::Error>;
 use bytes::Bytes;
 use http::{Extensions, HeaderMap, Method, Uri, Version};
 use std::str::FromStr;
@@ -28,22 +27,21 @@ pub struct Request {
 
     /// The route parameters of the request.
     params: HashMap<String, String>,
-    // Connection State(Keep-Alive OR Close) of the Request
-    pub(crate) connection: Option<ConnectionState>,
 }
 
 impl Request {
     /// Parses a Request from raw bytes if parsing fails returns a error
-    /// #### Puts a None to as stream of the request!
     pub fn parse(raw: &[u8]) -> Result<Request, Error> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut request = httparse::Request::new(&mut headers);
-        let mut connection = None;
+
         request.parse(raw).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse request: {}", e))) })?;
-        let method = match Method::from_str(request.method.unwrap_or("nil")) {
-            Ok(m) => m,
-            Err(e) => return Err(Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse method: {}", e)))),
-        };
+
+        // Get the method string, ensuring it exists
+        let method_str = request.method.ok_or_else(|| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, "Missing HTTP method")) })?;
+
+        // Validate method against known HTTP methods
+        let method = Method::from_str(method_str).map_err(|_| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Invalid HTTP method: {}", method_str))) })?;
         let path = request.path.ok_or_else(|| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, "Failed to parse URI")) })?;
         let uri: Uri = path.parse().map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse URI: {}", e))) })?;
 
@@ -57,10 +55,6 @@ impl Request {
             let name = http::header::HeaderName::from_bytes(header.name.as_bytes()).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse header name: {}", e))) })?;
             let value = http::header::HeaderValue::from_bytes(header.value).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse header value: {}", e))) })?;
 
-            if name.as_str().eq_ignore_ascii_case("connection") {
-                connection = ConnectionState::parse(value.to_str().unwrap_or(""));
-            }
-
             header_map.insert(name, value);
         }
         let body_start = raw.windows(4).position(|w| w == b"\r\n\r\n").map(|pos| pos + 4).unwrap_or(raw.len());
@@ -73,7 +67,6 @@ impl Request {
             headers: header_map,
             body,
             extensions,
-            connection,
             params: HashMap::new(),
         })
     }
@@ -110,6 +103,6 @@ impl Request {
 
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} for {}: Body Data: {} ", self.method, self.uri.path(), String::from_utf8_lossy(&self.body))
+        write!(f, "{} {}", self.method, self.uri.path())
     }
 }

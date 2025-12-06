@@ -4,9 +4,9 @@ members = ["crates/*", "examples/*"]
 exclude = ["benches/axum", "benches/feather"]
 
 [workspace.dependencies]
-feather = { version = "~0.5",path = "./crates/feather", default-features = false }
-feather-runtime = { version = "~0.4", path = "./crates/feather-runtime", default-features = false }
-feather-macros = {version = "0.1", path = "./crates/feather-macros"}
+feather = { version = "~0.6",path = "./crates/feather", default-features = false }
+feather-runtime = { version = "~0.5", path = "./crates/feather-runtime", default-features = false }
+feather-macros = {version = "~0.2", path = "./crates/feather-macros"}
 http = { version = "1", default-features = false, features = ["std"]}
 httparse = { version = "1", default-features = false }
 serde = { version = "1", default-features = false }
@@ -17,9 +17,9 @@ log = { version = "~0.4", default-features = false }
 serde_urlencoded = { version = "~0.7", default-features = false }
 thiserror = { version = "2", default-features = false }
 crossbeam = { version = "~0.8", default-features = false ,features = ["std"]}
-anymap = { version = "~0.12", default-features = false }
 jsonwebtoken = { version = "9", default-features = false }
-rusqlite = { version = "~0.35", default-features = false }
+r2d2 = "0.8.0"
+r2d2_sqlite = "0.31.0"
 urlencoding = "2.1.3"
 parking_lot = { version = "~0.12"}
 may ={ version = "0.3.51" }

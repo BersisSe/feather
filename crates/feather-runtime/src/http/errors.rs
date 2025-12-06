@@ -1,8 +1,7 @@
-use http::header::{InvalidHeaderName,InvalidHeaderValue};
+use http::header::{InvalidHeaderName, InvalidHeaderValue};
 use thiserror::Error;
 
-
-#[derive(Debug,Error)]
+#[derive(Debug, Error)]
 pub enum HeaderError {
     #[error("Invalid Header Name")]
     InvalidHeaderName(#[from] InvalidHeaderName),

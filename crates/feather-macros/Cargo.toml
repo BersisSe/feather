@@ -1,6 +1,6 @@
 [package]
 name = "feather-macros"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["Bersis Sevimli"]
 description = "Proc-macros for Feather framework"
@@ -12,6 +12,6 @@ syn = {version = "2.0", features = ["full"]}
 
 [lib]
 proc-macro = true
-crate-type = ["proc-macro"]
+
 [features]
 jwt = []

@@ -3,7 +3,7 @@
 //! //! The POST handler expects a JSON body with a "username" field and responds accordingly.
 //! //! The server listens on port 5050.
 
-use feather::{info, json, middleware, middleware_fn, next, App};
+use feather::{App, info, json, middleware, middleware_fn, next};
 
 fn main() {
     // Lets Create a App instance named api
@@ -18,7 +18,7 @@ fn main() {
     api.post(
         "/auth",
         middleware!(|req, res, _ctx| {
-            let data = req.json().unwrap(); // if the response is not JSON, this will panic
+            let data = req.json()?; // Propogate error to the pipeline
             // Log the received data
             info!("Received POST request to /auth with body: {}", data);
             // Check if the data contains a "username" field

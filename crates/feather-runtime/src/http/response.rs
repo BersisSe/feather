@@ -22,11 +22,19 @@ pub struct Response {
 
 impl Response {
     const MAX_FILE_SIZE_BYTES: u64 = 4 * 1024 * 1024; // 4 MB
-    /// Sets the StatusCode of the response and Returns a Muteable Reference to the Response so you can things like
+
+    /// Internal helper to set common headers
+    fn set_common_headers(&mut self, content_type: Option<&'static str>, len: usize) {
+        if let Some(ct) = content_type {
+            self.headers.insert(HeaderName::from_static("content-type"), HeaderValue::from_static(ct));
+        }
+        self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
+    }
+
+    /// Sets the StatusCode of the response and Returns a Muteable Reference to the Response
     /// ```rust,ignore
-    /// res.status(200).send_text("eyo");
+    /// res.status(200).send_text("hello");
     /// ```
-    /// The StatusCode is a 3-digit integer that indicates the result of the request.    
     pub fn set_status(&mut self, status: u16) -> &mut Response {
         self.status = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         self
@@ -112,26 +120,23 @@ impl Response {
     pub fn send_text(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        let len = self.body.as_ref().unwrap().len();
-        self.headers.insert(HeaderName::from_static("Content-Type"), HeaderValue::from_static("text/plain;charset=utf-8"));
-
-        self.headers.insert(HeaderName::from_static("Content-Length"), Self::len_to_header_value(len));
+        self.set_common_headers(Some("text/plain;charset=utf-8"), self.body.as_ref().unwrap().len());
     }
+
     /// Sends Given Bytes as plain text
     pub fn send_bytes(&mut self, data: impl Into<Vec<u8>>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        let len = self.body.as_ref().unwrap().len();
-        self.headers.insert(HeaderName::from_static("Content-Length"), Self::len_to_header_value(len));
+        self.set_common_headers(None, self.body.as_ref().unwrap().len());
     }
 
     ///Takes a String(Should be valid HTML) and sends it's as Html
     pub fn send_html(&mut self, data: impl Into<String>) {
         let body = data.into();
         self.body = Some(Bytes::from(body));
-        self.headers.insert(HeaderName::from_static("Content-Type"), HeaderValue::from_static("text/html"));
+        self.headers.insert(HeaderName::from_static("content-type"), HeaderValue::from_static("text/html"));
         let len = self.body.as_ref().unwrap().len();
-        self.headers.insert(HeaderName::from_static("Content-Length"), Self::len_to_header_value(len));
+        self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
     }
 
     /// Takes a Serializeable object and sends it as json.
@@ -140,16 +145,16 @@ impl Response {
         match serde_json::to_string(&data) {
             Ok(json) => {
                 self.body = Some(Bytes::from(json));
-                self.headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+                self.headers.insert(HeaderName::from_static("content-type"), HeaderValue::from_static("application/json"));
                 let len = self.body.as_ref().unwrap().len();
-                self.headers.insert(HeaderName::from_static("Content-Length"), Self::len_to_header_value(len));
+                self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
             }
             Err(_) => {
                 self.status = StatusCode::INTERNAL_SERVER_ERROR;
                 self.body = Some(Bytes::from("Internal Server Error"));
-                self.headers.insert("Content-Type", HeaderValue::from_static("text/plain"));
+                self.headers.insert(HeaderName::from_static("content-type"), HeaderValue::from_static("text/plain"));
                 let len = self.body.as_ref().unwrap().len();
-                self.headers.insert(HeaderName::from_static("Content-Length"), Self::len_to_header_value(len));
+                self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
             }
         }
     }
@@ -168,9 +173,7 @@ impl Response {
         // ENFORCE LIMIT: 4MB
         if metadata.len() > Self::MAX_FILE_SIZE_BYTES {
             self.status = StatusCode::PAYLOAD_TOO_LARGE; // 413
-            self.body = Some(Bytes::from(
-                "File size exceeds 4MB limit. Use chunked encoding for larger files.",
-            ));
+            self.body = Some(Bytes::from("File size exceeds 4MB limit. Use chunked encoding for larger files."));
             return;
         }
 
@@ -179,10 +182,7 @@ impl Response {
             Ok(_) => {
                 self.body = Some(Bytes::from(buffer));
                 let len = self.body.as_ref().unwrap().len();
-                self.headers.insert(
-                    HeaderName::from_static("Content-Length"),
-                    Self::len_to_header_value(len),
-                );
+                self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
                 // ? NOTE: Consider adding feature : Content-Type based on file extension
             }
             Err(_) => {

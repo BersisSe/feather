@@ -1,4 +1,4 @@
 max_width = 250
 use_small_heuristics = "Off"
-fn_call_width = 300
+fn_call_width = 100
 fn_params_layout = "Compressed"

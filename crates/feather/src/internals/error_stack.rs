@@ -6,4 +6,4 @@ use std::error::Error;
 type BoxError = Box<dyn Error>;
 
 /// Type Alias for the Error Handling Function: `Box<dyn Fn(BoxError,&Request,&mut Response)>`
-pub type ErrorHandler = Box<dyn Fn(BoxError, &Request, &mut Response)>;
+pub type ErrorHandler = Box<dyn Fn(BoxError, &Request, &mut Response) + Send + Sync>;

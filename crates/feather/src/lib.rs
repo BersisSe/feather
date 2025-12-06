@@ -53,7 +53,6 @@
 //!
 //! ---
 
-
 pub mod internals;
 #[cfg(feature = "jwt")]
 pub mod jwt;
@@ -85,8 +84,6 @@ macro_rules! next {
     };
 }
 
-
-
 /// The `middleware!` macro allows you to define middleware functions concisely without repeating type signatures.
 ///
 /// # Usage
@@ -105,10 +102,9 @@ macro_rules! next {
 macro_rules! middleware {
     // Argument form: middleware!(|req, res, ctx| { ... })
     (|$req:ident, $res:ident, $ctx:ident| $body:block) => {
-        |$req: &mut $crate::Request, $res: &mut $crate::Response, $ctx: &mut $crate::AppContext| $body
+        |$req: &mut $crate::Request, $res: &mut $crate::Response, $ctx: &$crate::AppContext| $body
     };
 }
-
 
 pub use feather_macros::middleware_fn;
 
@@ -116,4 +112,3 @@ pub use feather_macros::middleware_fn;
 pub use feather_macros::Claim;
 #[cfg(feature = "jwt")]
 pub use feather_macros::jwt_required;
-

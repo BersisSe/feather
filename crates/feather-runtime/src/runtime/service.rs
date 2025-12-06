@@ -1,6 +1,6 @@
 use crate::http::{Request, Response};
-use std::io;
 use may::net::TcpStream;
+use std::{io, sync::Arc};
 
 /// The outcome of the application's request handling.
 pub enum ServiceResult {
@@ -18,4 +18,4 @@ pub trait Service: Send + Sync + 'static {
     fn handle(&self, req: Request, stream: Option<TcpStream>) -> io::Result<ServiceResult>;
 }
 
-pub type BoxService = Box<dyn Service>;
+pub type ArcService = Arc<dyn Service>;
