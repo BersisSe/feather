@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.1] - 2025-07-08
+
+### Overview
+Very minor fix update. 
+
+### Fixed 
+- Building without the `log` feature
+
+
+
+
 ## [0.6.0] - 2025-07-08
 
 ### Overview
