@@ -214,8 +214,8 @@ If you have ideas or bugs, please [open an issue]([https://github.com/BersisSe/f
 ```bash
 # Getting started with dev
 git clone https://github.com/BersisSe/feather.git
-cd feather
-cargo run --example app
+cd feather/examples/basic-app
+cargo run
 ```
 
 ---
