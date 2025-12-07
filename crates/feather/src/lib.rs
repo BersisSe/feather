@@ -3,7 +3,7 @@
 //! Feather is a lightweight, middleware-first web framework for Rust, inspired by the simplicity of Express.js but designed for Rust’s performance and safety.
 //!
 //! ## Philosophy
-//! - **Middleware-First**: Everything in Feather is a middleware, or produces a middleware. This enables powerful composition and a familiar, flexible mental model.
+//! - **Fully Sync**: Feather is built on a fully synchronous model using Feather-Runtime, eliminating the complexity of async/await while maintaining high performance.
 //! - **DX-First**: Feather is designed to be easy to use, with minimal boilerplate, clear APIs, and a focus on developer experience.
 //!
 //! ## Features
@@ -18,7 +18,7 @@
 //! Add Feather to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! feather = "~0.4"
+//! feather = "~0.6"
 //! ```
 //!
 //! ### Quick Example
@@ -47,11 +47,9 @@
 //! ## State Management
 //! Feather's Context API allows you to manage application-wide state without extractors or macros. See the README for more details.
 //!
-//! ## Macros
-//! - `next!`: Syntactic sugar for `Ok(MiddlewareResult::Next)`, reducing boilerplate in middleware implementations.
-//! - `middleware!`: Concise closure middleware definition.
-//!
 //! ---
+
+// --- IMPORTS START ---
 
 pub mod internals;
 #[cfg(feature = "jwt")]
@@ -70,6 +68,18 @@ use std::error::Error;
 pub use crate::middlewares::MiddlewareResult;
 pub use feather_runtime::http::{Request, Response};
 pub use internals::{App, AppContext};
+pub use crate::internals::State;
+pub mod prelude {
+    pub use crate::next;
+    pub use crate::middleware;
+    pub use crate::middleware_fn;
+    pub use crate::Outcome;
+    pub use crate::internals::{App, AppContext};
+    pub use crate::State;
+    pub use crate::Request;
+    pub use crate::Response;
+}
+// --- IMPORTS END ---
 
 /// This is just a type alias for `Result<MiddlewareResult, Box<dyn Error>>;`  
 /// Outcome is used in All middlewares as a return type.

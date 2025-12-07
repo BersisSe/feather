@@ -1,4 +1,4 @@
-use feather::internals::State;
+use feather::State;
 use feather::middlewares::builtins::Logger;
 use feather::{App, middleware, next};
 

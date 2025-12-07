@@ -126,15 +126,15 @@ struct Counter { pub count: i32 }
 
 #[middleware_fn]
 fn count() -> feather::Outcome {
-    let counter = ctx.get_mut_state::<Counter>().unwrap();
-    counter.count += 1;
+    let counter = ctx.get_state::<State<Counter>>().unwrap();
+    counter.lock().count += 1;
     res.send_text(format!("Counted! {}", counter.count));
     next!()
 }
 
 fn main() {
     let mut app = App::new();
-    app.context().set_state(Counter { count: 0 });
+    app.context().set_state(State::new(Counter { count: 0 }));
     app.get("/", count);
     app.listen("127.0.0.1:5050");
 }
@@ -214,8 +214,8 @@ If you have ideas or bugs, please [open an issue]([https://github.com/BersisSe/f
 ```bash
 # Getting started with dev
 git clone https://github.com/BersisSe/feather.git
-cd feather/examples/basic-app
-cargo run
+cd feather
+cargo run --example app
 ```
 
 ---
