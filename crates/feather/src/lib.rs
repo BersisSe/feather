@@ -1,4 +1,4 @@
-//! # 🪶 Feather: Middleware-First, DX-First Web Framework for Rust
+//! # 🪶 Feather: Syncronous DX-First Minimal Web Framework for Rust
 //!
 //! Feather is a lightweight, middleware-first web framework for Rust, inspired by the simplicity of Express.js but designed for Rust’s performance and safety.
 //!
@@ -34,18 +34,39 @@
 //! }
 //! ```
 //!
-//! ## Middleware in Feather
-//! Middleware is the heart of Feather. You can write middleware as a closure, a struct, or chain them together. The `middleware!` macro helps reduce boilerplate for closures:
+//! ## Middlewares in Feather
+//! Middlewares are the heart of Feather. You can write middleware as a closure, a struct, or chain them together. The `middleware!` and `middleware_fn`
+//! macros helps reduce boilerplate for closures:
 //!
+//! Examples: of defining middleware
 //! ```rust,ignore
 //! app.get("/", middleware!(|req, res, ctx| {
 //!     // ...
 //!     next!()
 //! }));
 //! ```
-//!
+//! ```rust,ignore
+//! #[middleware_fn]
+//! fn my_middleware() -> Outcome {
+//!     let data = req.json()?; // use request(param gets added by the macro)
+//! }
+//! ```
+//! 
 //! ## State Management
-//! Feather's Context API allows you to manage application-wide state without extractors or macros. See the README for more details.
+//! Feather's Context API allows you to manage application-wide state without extractors or macros.
+//! You can store and retrieve state easily:
+//! ```rust,ignore
+//! app.context().set_state(State::new(MyState { ... })); // For readonly states you do not need State and Locking/Scoping
+//! let my_state = ctx.get_state::<State<MyState>>(); // For mutable states
+//! 
+//! my_state.with_mut_scope(|state| {
+//!    state.value += 1;
+//! });
+//! 
+//! // OR
+//! 
+//! my_state.lock().value += 1; // If you just need to read or write without a scope
+//! ```
 //!
 //! ---
 
