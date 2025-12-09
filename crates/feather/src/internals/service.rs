@@ -16,6 +16,7 @@ pub(crate) struct AppService {
     pub middleware: Vec<Box<dyn Middleware>>,
     pub context: AppContext,
     pub error_handler: Option<ErrorHandler>,
+    pub max_body_size: usize,
 }
 
 impl AppService {

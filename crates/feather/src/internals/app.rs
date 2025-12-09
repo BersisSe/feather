@@ -24,6 +24,7 @@ pub struct App {
     middleware: Vec<Box<dyn Middleware>>,
     context: AppContext,
     error_handler: Option<ErrorHandler>,
+    max_body_size: usize,
 }
 
 macro_rules! route_methods {
@@ -82,6 +83,7 @@ impl App {
             middleware: Vec::new(),
             context: AppContext::new(),
             error_handler: None,
+            max_body_size: 8192, // 8KB default
         }
     }
     /// Create a new instance of the application without initializing the logger.
@@ -92,6 +94,7 @@ impl App {
             middleware: Vec::new(),
             context: AppContext::new(),
             error_handler: None,
+            max_body_size: 8192, // 8KB default
         }
     }
     /// Returns a Handle to the [AppContext] inside the App
@@ -105,6 +108,18 @@ impl App {
     #[inline]
     pub fn set_error_handler(&mut self, handler: ErrorHandler) {
         self.error_handler = Some(handler)
+    }
+
+    /// Set the maximum request body size in bytes.
+    /// Default is 8192 bytes (8KB).
+    /// # Example
+    /// ```rust,ignore
+    /// app.max_body(10 * 1024 * 1024); // 10MB
+    /// ```
+    #[inline]
+    pub fn max_body(&mut self, size: usize) -> &mut Self {
+        self.max_body_size = size;
+        self
     }
 
     /// Add a route to the application.  
@@ -147,8 +162,9 @@ impl App {
             middleware: self.middleware,
             context: self.context,
             error_handler: self.error_handler,
+            max_body_size: self.max_body_size,
         };
         println!("Feather listening on : http://{address}",);
-        Server::new(svc).run(address).expect("Failed to start server");
+        Server::new(svc, self.max_body_size).run(address).expect("Failed to start server");
     }
 }
