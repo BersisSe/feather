@@ -104,9 +104,7 @@ impl Server {
     /// The main coroutine function: reads, dispatches, and manages stream lifecycle.
     fn conn_handler(mut stream: TcpStream, service: ArcService, max_body_size: usize) -> io::Result<()> {
         // Use a reasonable buffer size, capped at max_body_size
-        const BUFFER_SIZE: usize = 8192;
-        let buffer_size = BUFFER_SIZE.min(max_body_size);
-        let mut buffer = vec![0u8; buffer_size];
+        let mut buffer = vec![0u8; max_body_size];
         let mut keep_alive = true;
 
         while keep_alive {
