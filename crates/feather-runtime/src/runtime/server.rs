@@ -16,14 +16,17 @@ pub struct Server {
     service: ArcService,
     /// Flag to control server shutdown
     running: Arc<AtomicBool>,
+    /// Maximum request body size in bytes
+    max_body_size: usize,
 }
 
 impl Server {
     /// Create a new Server instance with the given Service
-    pub fn new(service: impl Service) -> Self {
+    pub fn new(service: impl Service, max_body_size: usize) -> Self {
         Self {
             service: Arc::new(service),
             running: Arc::new(AtomicBool::new(true)),
+            max_body_size,
         }
     }
 
@@ -51,10 +54,11 @@ impl Server {
                     #[cfg(feature = "log")]
                     debug!("New connection from {}", addr);
                     let service = self.service.clone();
+                    let max_body_size = self.max_body_size;
 
                     // Spawn a new coroutine for this connection with panic handling
                     may::go!(move || {
-                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| Self::conn_handler(stream, service)));
+                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| Self::conn_handler(stream, service, max_body_size)));
 
                         match result {
                             Ok(Ok(())) => (), // Connection completed successfully
@@ -98,9 +102,9 @@ impl Server {
         stream.write_all(&response.to_raw())
     }
     /// The main coroutine function: reads, dispatches, and manages stream lifecycle.
-    fn conn_handler(mut stream: TcpStream, service: ArcService) -> io::Result<()> {
-        const MAX_REQUEST_SIZE: usize = 8192; // 8KB limit
-        let mut buffer = [0u8; MAX_REQUEST_SIZE];
+    fn conn_handler(mut stream: TcpStream, service: ArcService, max_body_size: usize) -> io::Result<()> {
+        // Use a reasonable buffer size, capped at max_body_size
+        let mut buffer = vec![0u8; max_body_size];
         let mut keep_alive = true;
 
         while keep_alive {
@@ -108,7 +112,7 @@ impl Server {
             stream.set_read_timeout(Some(std::time::Duration::from_secs(30)))?;
             let bytes_read = match stream.read(&mut buffer) {
                 Ok(0) => return Ok(()), // Connection closed
-                Ok(n) if n >= MAX_REQUEST_SIZE => {
+                Ok(n) if n >= max_body_size => {
                     Self::send_error(&mut stream, StatusCode::PAYLOAD_TOO_LARGE, "Request body too large")?;
                     return Ok(());
                 }
