@@ -10,23 +10,59 @@ use std::{net::SocketAddr, panic, sync::Arc};
 
 use crate::http::{Request, Response};
 use crate::runtime::service::{ArcService, Service, ServiceResult};
+
+/// Configuration for the HTTP server
+#[derive(Clone, Debug)]
+pub struct ServerConfig {
+    /// Maximum request body size in bytes (default: 8192 = 8KB)
+    pub max_body_size: usize,
+    /// Read timeout in seconds (default: 30)
+    pub read_timeout_secs: u64,
+    /// Number of worker threads (default: number of CPU cores)
+    pub workers: usize,
+    /// Stack size per coroutine in bytes (default: 65536 = 64KB)
+    pub stack_size: usize,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            max_body_size: 8192,
+            read_timeout_secs: 30,
+            workers: num_cpus::get(),
+            stack_size: 64 * 1024,
+        }
+    }
+}
+
 /// A HTTP server that handles incoming connections using coroutines
 pub struct Server {
     /// The user's application logic
     service: ArcService,
     /// Flag to control server shutdown
     running: Arc<AtomicBool>,
-    /// Maximum request body size in bytes
-    max_body_size: usize,
+    /// Server configuration
+    config: ServerConfig,
 }
 
 impl Server {
     /// Create a new Server instance with the given Service
     pub fn new(service: impl Service, max_body_size: usize) -> Self {
+        let mut config = ServerConfig::default();
+        config.max_body_size = max_body_size;
         Self {
             service: Arc::new(service),
             running: Arc::new(AtomicBool::new(true)),
-            max_body_size,
+            config,
+        }
+    }
+
+    /// Create a new Server instance with custom configuration
+    pub fn with_config(service: impl Service, config: ServerConfig) -> Self {
+        Self {
+            service: Arc::new(service),
+            running: Arc::new(AtomicBool::new(true)),
+            config,
         }
     }
 
@@ -37,9 +73,9 @@ impl Server {
 
     /// Runs the server until shutdown is called
     pub fn run(&self, addr: impl ToSocketAddrs) -> io::Result<()> {
-        // Setting worker count equal to CPU cores for maximum parallel utilization.
-        may::config().set_workers(num_cpus::get());
-        may::config().set_stack_size(64 * 1024); // 64 KB instead of default 2-4 KB(Mainly for logger formatting)
+        // Configure coroutine runtime
+        may::config().set_workers(self.config.workers);
+        may::config().set_stack_size(self.config.stack_size);
         #[cfg(feature = "log")]
         info!(
             "Feather Runtime Started on {}",
@@ -54,11 +90,11 @@ impl Server {
                     #[cfg(feature = "log")]
                     debug!("New connection from {}", addr);
                     let service = self.service.clone();
-                    let max_body_size = self.max_body_size;
+                    let config = self.config.clone();
 
                     // Spawn a new coroutine for this connection with panic handling
                     may::go!(move || {
-                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| Self::conn_handler(stream, service, max_body_size)));
+                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| Self::conn_handler(stream, service, config)));
 
                         match result {
                             Ok(Ok(())) => (), // Connection completed successfully
@@ -102,17 +138,17 @@ impl Server {
         stream.write_all(&response.to_raw())
     }
     /// The main coroutine function: reads, dispatches, and manages stream lifecycle.
-    fn conn_handler(mut stream: TcpStream, service: ArcService, max_body_size: usize) -> io::Result<()> {
+    fn conn_handler(mut stream: TcpStream, service: ArcService, config: ServerConfig) -> io::Result<()> {
         // Use a reasonable buffer size, capped at max_body_size
-        let mut buffer = vec![0u8; max_body_size];
+        let mut buffer = vec![0u8; config.max_body_size];
         let mut keep_alive = true;
 
         while keep_alive {
             // 1. READ PHASE with timeout
-            stream.set_read_timeout(Some(std::time::Duration::from_secs(30)))?;
+            stream.set_read_timeout(Some(std::time::Duration::from_secs(config.read_timeout_secs)))?;
             let bytes_read = match stream.read(&mut buffer) {
                 Ok(0) => return Ok(()), // Connection closed
-                Ok(n) if n >= max_body_size => {
+                Ok(n) if n >= config.max_body_size => {
                     Self::send_error(&mut stream, StatusCode::PAYLOAD_TOO_LARGE, "Request body too large")?;
                     return Ok(());
                 }

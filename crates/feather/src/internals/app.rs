@@ -3,6 +3,7 @@ use super::error_stack::ErrorHandler;
 use crate::internals::service::AppService;
 use crate::middlewares::Middleware;
 pub use feather_runtime::Method;
+pub use feather_runtime::runtime::server::ServerConfig;
 use feather_runtime::runtime::server::Server;
 
 use std::borrow::Cow;
@@ -24,7 +25,7 @@ pub struct App {
     middleware: Vec<Box<dyn Middleware>>,
     context: AppContext,
     error_handler: Option<ErrorHandler>,
-    max_body_size: usize,
+    server_config: ServerConfig,
 }
 
 macro_rules! route_methods {
@@ -83,7 +84,7 @@ impl App {
             middleware: Vec::new(),
             context: AppContext::new(),
             error_handler: None,
-            max_body_size: 8192, // 8KB default
+            server_config: ServerConfig::default(),
         }
     }
     /// Create a new instance of the application without initializing the logger.
@@ -94,7 +95,57 @@ impl App {
             middleware: Vec::new(),
             context: AppContext::new(),
             error_handler: None,
-            max_body_size: 8192, // 8KB default
+            server_config: ServerConfig::default(),
+        }
+    }
+
+    /// Create a new instance of the application with a custom server configuration.
+    /// # Example
+    /// ```rust,ignore
+    /// use feather::{App, ServerConfig};
+    /// 
+    /// let config = ServerConfig {
+    ///     max_body_size: 10 * 1024 * 1024,  // 10MB
+    ///     read_timeout_secs: 60,             // 60 seconds
+    ///     workers: 4,                        // 4 worker threads
+    ///     stack_size: 128 * 1024,            // 128KB
+    /// };
+    /// 
+    /// let mut app = App::with_config(config);
+    /// ```
+    pub fn with_config(config: ServerConfig) -> Self {
+        #[cfg(feature = "log")]
+        #[cfg(debug_assertions)]
+        {
+            use std::sync::Once;
+            static INIT_LOGGER: Once = Once::new();
+
+            INIT_LOGGER.call_once(|| {
+                use tracing_subscriber::filter::filter_fn;
+                use tracing_subscriber::{Layer, prelude::*};
+
+                let layer = tracing_subscriber::fmt::layer()
+                    .with_target(false)
+                    .pretty()
+                    .compact()
+                    .with_target(false)
+                    .with_thread_ids(false)
+                    .with_level(true)
+                    .with_filter(filter_fn(|meta| {
+                        // Ignore logs from feather_runtime and may crates
+                        !meta.target().starts_with("feather_runtime") && !meta.target().starts_with("may")
+                    }))
+                    .boxed();
+
+                tracing_subscriber::registry().with(layer).init();
+            });
+        }
+        Self {
+            routes: Vec::new(),
+            middleware: Vec::new(),
+            context: AppContext::new(),
+            error_handler: None,
+            server_config: config,
         }
     }
     /// Returns a Handle to the [AppContext] inside the App
@@ -118,7 +169,43 @@ impl App {
     /// ```
     #[inline]
     pub fn max_body(&mut self, size: usize) -> &mut Self {
-        self.max_body_size = size;
+        self.server_config.max_body_size = size;
+        self
+    }
+
+    /// Set the read timeout in seconds for client connections.
+    /// Default is 30 seconds.
+    /// # Example
+    /// ```rust,ignore
+    /// app.read_timeout(60); // 60 seconds
+    /// ```
+    #[inline]
+    pub fn read_timeout(&mut self, seconds: u64) -> &mut Self {
+        self.server_config.read_timeout_secs = seconds;
+        self
+    }
+
+    /// Set the number of worker threads for handling connections.
+    /// Default is the number of CPU cores.
+    /// # Example
+    /// ```rust,ignore
+    /// app.workers(4); // 4 worker threads
+    /// ```
+    #[inline]
+    pub fn workers(&mut self, count: usize) -> &mut Self {
+        self.server_config.workers = count;
+        self
+    }
+
+    /// Set the stack size per coroutine in bytes.
+    /// Default is 65536 bytes (64KB).
+    /// # Example
+    /// ```rust,ignore
+    /// app.stack_size(128 * 1024); // 128KB
+    /// ```
+    #[inline]
+    pub fn stack_size(&mut self, size: usize) -> &mut Self {
+        self.server_config.stack_size = size;
         self
     }
 
@@ -162,9 +249,8 @@ impl App {
             middleware: self.middleware,
             context: self.context,
             error_handler: self.error_handler,
-            max_body_size: self.max_body_size,
         };
         println!("Feather listening on : http://{address}",);
-        Server::new(svc, self.max_body_size).run(address).expect("Failed to start server");
+        Server::with_config(svc, self.server_config).run(address).expect("Failed to start server");
     }
 }
