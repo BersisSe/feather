@@ -28,7 +28,7 @@
 
 ## How it works behind the scenes
 
-Feather is powered by **Feather-Runtime**, a custom runtime built for high concurrency and low latency without using Rust's async/await. Each request is handled by a lightweight coroutine, enabling thousands of concurrent connections with simple, synchronous code. For more technical details, see [Feather-Runtime](./crates/feather-runtime).
+Feather is powered by **Feather-Runtime**, a custom runtime built for high concurrency and low latency without using Rust's async/await. Each request is handled by a lightweight coroutine(using `may`), enabling thousands of concurrent connections with simple, synchronous code. For more technical details, see [Feather-Runtime](./crates/feather-runtime).
 
 ---
 
@@ -38,7 +38,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "~0.6"
+feather = "~0.7"
 ```
 
 ---
