@@ -23,7 +23,8 @@
 - **Feel of Async Without Async**  
   Feather is multithreaded by default, running on **Feather-Runtime**.
   
-
+- **Great Documantation**
+  Feather is Fully Documented in [Docs.rs](https://docs.rs/feather/latest/feather/), I bet you could learn all of Feather in just a few hours or so.
 
 
 ## How it works behind the scenes
