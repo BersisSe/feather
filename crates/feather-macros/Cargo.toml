@@ -1,6 +1,6 @@
 [package]
 name = "feather-macros"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["Bersis Sevimli"]
 description = "Proc-macros for Feather framework"

@@ -9,12 +9,29 @@ use crate::jwt::JwtManager;
 
 type Erased = dyn Any + Send + Sync;
 
-/// A simple easier to use Wrapper around parking_lot Mutex can be used for mutable data in the AppContext
-/// # Example
-/// ```rust,ignore
-/// use feather::{AppContext, State};
+/// A thread-safe wrapper for mutable application state.
 ///
-/// #[derive(Debug)]
+/// `State<T>` is used to store mutable data in the application context. It provides
+/// safe concurrent access to data via [`parking_lot::Mutex`].
+///
+/// # When to Use
+///
+/// - Storing mutable configuration
+/// - Database connection pools
+/// - Counters and metrics
+/// - Any shared state that needs mutation
+///
+/// # When NOT to Use
+///
+/// - Read-only configuration (store directly)
+/// - Data that should be immutable (just implement Clone)
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use feather::{App, State};
+///
+/// #[derive(Clone)]
 /// struct Counter {
 ///     count: i32,
 /// }
@@ -25,14 +42,15 @@ type Erased = dyn Any + Send + Sync;
 ///     }
 /// }
 ///
-/// // Store in context
+/// let mut app = App::new();
 /// app.context().set_state(State::new(Counter { count: 0 }));
 ///
-/// // In a middleware
 /// app.get("/", middleware!(|_req, res, ctx| {
-///     let mut counter = ctx.get_state::<State<Counter>>();
-///     counter.increment(); // Direct method call!
-///     res.send_text(format!("Count: {}", counter.count));
+///     let counter = ctx.get_state::<State<Counter>>();
+///     counter.with_mut_scope(|c| {
+///         c.increment();
+///     });
+///     res.send_text(format!("Count: {}", counter.with_scope(|c| c.count)));
 ///     next!()
 /// }));
 /// ```
@@ -48,61 +66,124 @@ impl<S> State<S> {
         }
     }
 
-    /// Get a lock guard to access the inner state.
+    /// Execute a closure with read-only access to the inner state.
     ///
-    /// This is useful when you need to hold the lock for multiple operations.
+    /// This is useful when you only need to read the state without modifying it.
+    /// The lock is automatically released after the closure completes.
     ///
-    /// # Example
-    /// ```rust,ignore
-    /// let counter = ctx.get_state::<State<Counter>>();
-    /// let mut guard = counter.lock();
-    /// guard.count += 1;
-    /// guard.count += 1; // Multiple operations with one lock
-    /// ```
-    pub fn lock(&self) -> MutexGuard<'_, S> {
-        self.inner.lock()
-    }
-
-    /// Execute a closure with access to the inner state.
+    /// # Panics
+    ///
+    /// Do not access the same `State<T>` recursively within the scope - this will
+    /// cause a deadlock. Extract what you need and access again if required.
     ///
     /// # Example
+    ///
     /// ```rust,ignore
     /// let counter = ctx.get_state::<State<Counter>>();
-    /// counter.with(|c| {
-    ///    println!("Current count: {}", c.count);
+    /// let count = counter.with_scope(|c| {
+    ///     println!("Current count: {}", c.count);
+    ///     c.count
     /// });
     /// ```
-    /// **DO NOT USE THE STATE ITSELF IN THE SCOPE IT WILL COUSE A DEADLOCK!**
     pub fn with_scope<R>(&self, f: impl FnOnce(&S) -> R) -> R {
         let guard = self.inner.lock();
         f(&guard)
     }
 
-    /// This is the most ergonomic way to work with State.
+    /// Execute a closure with mutable access to the inner state.
+    ///
+    /// This is the most ergonomic way to modify state. The lock is automatically
+    /// released after the closure completes.
+    ///
+    /// # Panics
+    ///
+    /// Do not access the same `State<T>` recursively within the scope - this will
+    /// cause a deadlock. Extract what you need and access again if required.
+    ///
     /// # Example
+    ///
     /// ```rust,ignore
     /// let counter = ctx.get_state::<State<Counter>>();
-    /// counter.with_mut(|c| {
+    /// counter.with_mut_scope(|c| {
     ///     c.increment();
     ///     c.increment();
     /// });
     /// ```
-    /// **DO NOT USE THE STATE ITSELF IN THE SCOPE IT WILL COUSE A DEADLOCK!**
     pub fn with_mut_scope<R>(&self, f: impl FnOnce(&mut S) -> R) -> R {
         let mut guard = self.inner.lock();
         f(&mut guard)
+    }
+
+    /// Get a mutable lock guard to access the inner state directly.
+    ///
+    /// This is useful when you need to hold the lock for multiple operations or
+    /// need direct access to the underlying value.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let counter = ctx.get_state::<State<Counter>>();
+    /// let mut guard = counter.lock();
+    /// guard.count += 1;
+    /// guard.count += 1;  // Multiple operations with one lock
+    /// drop(guard);  // Lock is released here
+    /// ```
+    pub fn lock(&self) -> MutexGuard<'_, S> {
+        self.inner.lock()
     }
 }
 
 // Make State cloneable if the inner type is cloneable
 impl<S: Clone> State<S> {
     /// Get a clone of the inner state.
+    ///
+    /// This is a convenience method for cloneable state types. It automatically
+    /// acquires the lock, clones the value, and releases the lock.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// #[derive(Clone)]
+    /// struct Counter {
+    ///     count: i32,
+    /// }
+    ///
+    /// let counter = ctx.get_state::<State<Counter>>();
+    /// let counter_copy = counter.get_clone();
+    /// ```
     pub fn get_clone(&self) -> S {
         self.inner.lock().clone()
     }
 }
 
 #[derive(Clone)]
+/// Application-wide context for state management and request handling.
+///
+/// Every request in Feather has access to the same `AppContext`. Use it to:
+/// - Store and retrieve application-wide state
+/// - Access the JWT manager (when JWT feature is enabled)
+/// - Share resources between requests
+///
+/// `AppContext` is thread-safe and can be accessed from multiple threads simultaneously.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use feather::{App, AppContext, State};
+///
+/// let mut app = App::new();
+/// let ctx = app.context();
+///
+/// #[derive(Clone)]
+/// struct Config {
+///     debug: bool,
+/// }
+///
+/// ctx.set_state(State::new(Config { debug: true }));
+///
+/// // Later, in a middleware
+/// let config = ctx.get_state::<State<Config>>();
+/// ```
 pub struct AppContext {
     pub inner: Arc<RwLock<HashMap<TypeId, Arc<Erased>>>>,
     #[cfg(feature = "jwt")]
@@ -110,7 +191,15 @@ pub struct AppContext {
 }
 
 impl AppContext {
-    /// Create an empty AppContext
+    /// Create an empty AppContext with no state or JWT manager.
+    ///
+    /// This is automatically called when creating a new [`crate::App`].
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let ctx = AppContext::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             inner: Arc::new(RwLock::new(HashMap::new())),
@@ -118,29 +207,82 @@ impl AppContext {
             jwt: None,
         }
     }
-    /// Sets the internal [jwt] Field with a given Manager
+
+    /// Sets the JWT manager for this context.
+    ///
+    /// This should be called before any middleware tries to access the JWT manager.
+    /// Calling this multiple times only sets the manager on the first call; subsequent
+    /// calls are ignored.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use feather::jwt::JwtManager;
+    ///
+    /// let mut app = App::new();
+    /// let jwt = JwtManager::new("secret-key".to_string());
+    /// app.context().set_jwt(jwt);
+    /// ```
     #[cfg(feature = "jwt")]
     pub fn set_jwt(&mut self, jwt: JwtManager) {
         if self.jwt.is_none() {
             self.jwt = Some(jwt)
         }
     }
-    /// Used to Access the JwtManager inside.  
-    /// ### Panics
-    /// when called before JwtManager is set
+
+    /// Access the JWT manager stored in this context.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the JWT manager has not been set via [`set_jwt`].
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let jwt_manager = ctx.jwt();
+    /// let token = jwt_manager.generate_simple("user123", 24)?;
+    /// ```
+    ///
+    /// [`set_jwt`]: Self::set_jwt
     #[cfg(feature = "jwt")]
     pub fn jwt(&self) -> &JwtManager {
         self.jwt.as_ref().expect("JwtManager has not been set!")
     }
 
     /// Insert or replace a state value keyed by its concrete type.
-    /// The value is stored as Arc<T>
+    ///
+    /// State values are stored as `Arc<T>` and can be accessed from any middleware.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use feather::State;
+    ///
+    /// #[derive(Clone)]
+    /// struct AppState {
+    ///     counter: i32,
+    /// }
+    ///
+    /// ctx.set_state(State::new(AppState { counter: 0 }));
+    /// ```
     pub fn set_state<T: Send + Sync + 'static>(&self, value: T) {
         let mut map = self.inner.write();
         map.insert(TypeId::of::<T>(), Arc::new(value));
     }
 
-    /// Try to fetch state by type. Returns `Some(Arc<T>)` if present.
+    /// Try to fetch state by type, returning `Some(Arc<T>)` if present.
+    ///
+    /// This is the non-panicking version of [`get_state`].
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if let Some(config) = ctx.try_get_state::<State<Config>>() {
+    ///     config.with_scope(|c| println!("{:?}", c));
+    /// }
+    /// ```
+    ///
+    /// [`get_state`]: Self::get_state
     pub fn try_get_state<T: Send + Sync + 'static>(&self) -> Option<Arc<T>> {
         let map = self.inner.read();
         let arc_any = map.get(&TypeId::of::<T>())?.clone();
@@ -149,12 +291,37 @@ impl AppContext {
         Arc::downcast::<T>(arc_any).ok()
     }
 
-    /// Get state by type, panics if missing.
+    /// Get state by type, panicking if not found.
+    ///
+    /// # Panics
+    ///
+    /// Panics if state of the requested type has not been set.
+    ///
+    /// Use [`try_get_state`] if you want to handle missing state gracefully.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let config = ctx.get_state::<State<Config>>();
+    /// config.with_scope(|c| println!("{:?}", c));
+    /// ```
+    ///
+    /// [`try_get_state`]: Self::try_get_state
     pub fn get_state<T: Send + Sync + 'static>(&self) -> Arc<T> {
         self.try_get_state::<T>().expect("state not found for requested type")
     }
 
-    /// Remove a state value of type T. Returns true if removed.
+    /// Remove a state value of the given type.
+    ///
+    /// Returns `true` if the state was present and removed, `false` otherwise.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if ctx.remove_state::<State<Config>>() {
+    ///     println!("Config was removed");
+    /// }
+    /// ```
     pub fn remove_state<T: Send + Sync + 'static>(&self) -> bool {
         let mut map = self.inner.write();
         map.remove(&TypeId::of::<T>()).is_some()

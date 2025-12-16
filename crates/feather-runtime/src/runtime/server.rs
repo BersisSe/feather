@@ -4,9 +4,9 @@ use log::{debug, info, warn};
 use may::net::{TcpListener, TcpStream};
 use num_cpus;
 use std::io::{self, Read, Write};
-use std::net::ToSocketAddrs;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::{net::SocketAddr, panic, sync::Arc};
+use std::{panic, sync::Arc};
 
 use crate::http::{Request, Response};
 use crate::runtime::service::{ArcService, Service, ServiceResult};

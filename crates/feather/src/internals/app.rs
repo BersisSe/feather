@@ -10,7 +10,9 @@ use std::borrow::Cow;
 
 use std::{fmt::Display, net::ToSocketAddrs};
 
-/// A route in the application.  
+/// A route in the application.
+///
+/// Routes map HTTP methods and paths to middleware handlers.
 #[repr(C)]
 pub struct Route {
     pub method: Method,
@@ -18,8 +20,25 @@ pub struct Route {
     pub middleware: Box<dyn Middleware>,
 }
 
-/// A Feather application.  
-
+/// A Feather application.
+///
+/// The main entry point for building web applications. Create an instance,
+/// add routes and middleware, then call `listen()` to start the server.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use feather::{App, middleware, next};
+///
+/// let mut app = App::new();
+///
+/// app.get("/", middleware!(|_req, res, _ctx| {
+///     res.send_text("Hello, Feather!");
+///     next!()
+/// }));
+///
+/// app.listen("127.0.0.1:5050");
+/// ```
 pub struct App {
     routes: Vec<Route>,
     middleware: Vec<Box<dyn Middleware>>,
@@ -148,14 +167,43 @@ impl App {
             server_config: config,
         }
     }
-    /// Returns a Handle to the [AppContext] inside the App
-    /// [AppContext] is Used for App wide state managment
+    /// Returns a mutable reference to the [AppContext].
+    ///
+    /// The context is used for application-wide state management. Use it to store
+    /// and retrieve data that needs to be shared across requests.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use feather::State;
+    ///
+    /// struct Config {
+    ///     database_url: String,
+    /// }
+    ///
+    /// let mut app = App::new();
+    /// app.context().set_state(State::new(Config {
+    ///     database_url: "postgresql://localhost/db".to_string(),
+    /// }));
+    /// ```
     pub fn context(&mut self) -> &mut AppContext {
         &mut self.context
     }
-    /// Set up the Error Handling Solution for that [App].  
-    /// If there are no Error Handler present by default,  
-    /// framework will Catch the error and print it to the `stderr` and return a `500` Status code response back to the client
+    /// Set up custom error handling for the application.
+    ///
+    /// By default, Feather catches errors and returns a 500 response. Use this to
+    /// customize error handling behavior.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let error_handler = |err, _req, res| {
+    ///     eprintln!("Error: {}", err);
+    ///     // Customize error response
+    /// };
+    ///
+    /// app.set_error_handler(Box::new(error_handler));
+    /// ```
     #[inline]
     pub fn set_error_handler(&mut self, handler: ErrorHandler) {
         self.error_handler = Some(handler)
@@ -197,8 +245,9 @@ impl App {
         self
     }
 
-    /// Set the stack size per coroutine in bytes.
-    /// Default is 65536 bytes (64KB).
+    /// Set the stack size per coroutine in bytes.  
+    /// Default is 65536 bytes (64KB).<br>
+    /// **Using Stack Size lower than 32KB can create Stack Overflow issues with the logger.**  
     /// # Example
     /// ```rust,ignore
     /// app.stack_size(128 * 1024); // 128KB
@@ -209,8 +258,28 @@ impl App {
         self
     }
 
-    /// Add a route to the application.  
-    /// Every Route Returns A MiddlewareResult to control the flow of your application.
+    /// Add a route to the application.
+    ///
+    /// This is the generic method for adding routes. For convenience, use the
+    /// HTTP method-specific methods like `get()`, `post()`, etc.
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - The HTTP method (GET, POST, etc.)
+    /// * `path` - The route path (e.g., "/users/:id")
+    /// * `middleware` - The middleware handler for this route
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use feather::{App, Method};
+    ///
+    /// let mut app = App::new();
+    /// app.route(Method::GET, "/", middleware!(|_req, res, _ctx| {
+    ///     res.send_text("Hello");
+    ///     next!()
+    /// }));
+    /// ```
     #[inline]
     pub fn route<M: Middleware + 'static>(&mut self, method: Method, path: impl Into<Cow<'static, str>>, middleware: M) {
         self.routes.push(Route {
@@ -221,6 +290,17 @@ impl App {
     }
 
     /// Add a global middleware to the application that will be applied to all routes.
+    ///
+    /// Global middleware runs on every request before any route-specific middleware.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// app.use_middleware(middleware!(|req, res, _ctx| {
+    ///     println!("Request to: {}", req.uri);
+    ///     next!()
+    /// }));
+    /// ```
     #[inline]
     pub fn use_middleware(&mut self, middleware: impl Middleware + 'static) {
         self.middleware.push(Box::new(middleware));
@@ -236,13 +316,24 @@ impl App {
         OPTIONS options
     );
 
-    /// Start the application and listen for incoming requests on the given address.
-    /// Blocks the current thread until the server is stopped.
+    /// Start the application and listen for incoming requests.
+    ///
+    /// This method blocks the current thread and starts accepting connections on
+    /// the specified address. The server will continue running until the process exits.
+    ///
+    /// # Arguments
+    ///
+    /// * `address` - The address to bind to (e.g., "127.0.0.1:5050")
     ///
     /// # Panics
     ///
-    /// Panics if the server fails to start
-    #[inline]
+    /// Panics if the server fails to bind to the specified address.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// app.listen("127.0.0.1:5050");
+    /// ```
     pub fn listen(self, address: impl ToSocketAddrs + Display) {
         let svc = AppService {
             routes: self.routes,

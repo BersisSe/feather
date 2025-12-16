@@ -11,6 +11,7 @@ fn main() {
     let mut app = App::new();
     // Lets create a manager this will keep our secret.
     let manager = JwtManager::new("top-secret-key".to_string());
+    
     // If Jwt Feature is active Context gains some new perks
     app.context().set_jwt(manager);
     // This route will used to generate a JWT token
@@ -34,6 +35,7 @@ fn main() {
                 exp,
                 sub: "Named Token".into(),
             };
+            
             let token = ctx.jwt().encode(&claims)?;
             res.send_text(token);
             next!()

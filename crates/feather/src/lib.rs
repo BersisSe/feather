@@ -1,73 +1,84 @@
-//! # 🪶 Feather: Syncronous DX-First Minimal Web Framework for Rust
+//! # 🪶 Feather: Synchronous DX-First Minimal Web Framework for Rust
 //!
-//! Feather is a lightweight, middleware-first web framework for Rust, inspired by the simplicity of Express.js but designed for Rust’s performance and safety.
+//! Feather is a lightweight, middleware-first web framework for Rust, inspired by Express.js but
+//! designed for Rust's performance and safety. Build fast, synchronous web applications without async complexity.
 //!
-//! ## Philosophy
-//! - **Fully Sync**: Feather is built on a fully synchronous model using Feather-Runtime, eliminating the complexity of async/await while maintaining high performance.
-//! - **DX-First**: Feather is designed to be easy to use, with minimal boilerplate, clear APIs, and a focus on developer experience.
+//! ## Quick Start
 //!
-//! ## Features
-//! - **Express.js-like Routing**: Use `app.get` style routing for simplicity and familiarity.
-//! - **State Management**: Manage application state efficiently using the Context API.
-//! - **Error Handling**: Runtime error handling for easier debugging and recovery.
-//! - **Middleware Support**: Create and chain middlewares for modular and reusable code.
-//! - **All-in-One**: Includes routing, middleware, logging, JWT authentication, and more.
-//! - **Multithreaded by Default**: Powered by Feather-Runtime for high performance without async.
-//!
-//! ## Getting Started
-//! Add Feather to your `Cargo.toml`:
+//! Add to `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! feather = "~0.6"
+//! feather = "0.6"
 //! ```
 //!
-//! ### Quick Example
+//! Hello world in 5 lines:
 //! ```rust,ignore
-//! use feather::{App, AppContext, Request, Response, next, middleware};
-//! fn main() {
-//!     let mut app = App::new();
-//!     app.get("/", middleware!(|_req, res, _ctx| {
-//!         res.send_text("Hello, Feather!");
-//!         next!()
-//!     }));
-//!     app.listen("127.0.0.1:5050");
-//! }
+//! use feather::{App, middleware, next};
+//! let mut app = App::new();
+//! app.get("/", middleware!(|_req, res, _ctx| {
+//!     res.send_text("Hello, Feather!");
+//!     next!()
+//! }));
+//! app.listen("127.0.0.1:5050");
 //! ```
 //!
-//! ## Middlewares in Feather
-//! Middlewares are the heart of Feather. You can write middleware as a closure, a struct, or chain them together. The `middleware!` and `middleware_fn`
-//! macros helps reduce boilerplate for closures:
+//! ## Why Feather?
 //!
-//! Examples: of defining middleware
+//! - **Fully Synchronous**: No async/await complexity. Built on lightweight coroutines for excellent performance.
+//! - **Express.js Inspired**: Familiar API with `app.get()`, `app.post()`, middleware chains.
+//! - **DX First**: Minimal boilerplate, clear APIs, easy to learn and use.
+//! - **Built-in Features**: Routing, middleware, state management, error handling, JWT auth.
+//! - **Multithreaded by Default**: Powered by Feather-Runtime for high concurrency.
+//!
+//! ## Comprehensive Guides
+//!
+//! Feather comes with detailed guides for every aspect:
+//!
+//! - **[Getting Started](guides::getting_started)** - Setup and core concepts
+//! - **[Routing](guides::routing)** - HTTP methods, paths, and handlers
+//! - **[Middlewares](guides::middlewares)** - Request processing pipelines
+//! - **[State Management](guides::state_management)** - Application context and data sharing
+//! - **[Error Handling](guides::error_handling)** - Error patterns and recovery
+//! - **[Authentication](guides::authentication)** - JWT tokens and protected routes
+//! - **[Server Configuration](guides::server_configuration)** - Tuning and optimization
+//!
+//! ## Common Tasks
+//!
+//! **Add a route:**
 //! ```rust,ignore
-//! app.get("/", middleware!(|req, res, ctx| {
-//!     // ...
+//! app.get("/users/:id", middleware!(|req, res, ctx| {
+//!     // Handle request
+//!     res.send_text("User details");
 //!     next!()
 //! }));
 //! ```
+//!
+//! **Use middleware:**
 //! ```rust,ignore
-//! #[middleware_fn]
-//! fn my_middleware() -> Outcome {
-//!     let data = req.json()?; // use request(param gets added by the macro)
-//! }
-//! ```
-//! 
-//! ## State Management
-//! Feather's Context API allows you to manage application-wide state without extractors or macros.
-//! You can store and retrieve state easily:
-//! ```rust,ignore
-//! app.context().set_state(State::new(MyState { ... })); // For readonly states you do not need State and Locking/Scoping
-//! let my_state = ctx.get_state::<State<MyState>>(); // For mutable states
-//! 
-//! my_state.with_mut_scope(|state| {
-//!    state.value += 1;
-//! });
-//! 
-//! // OR
-//! 
-//! my_state.lock().value += 1; // If you just need to read or write without a scope
+//! app.use_middleware(middleware!(|req, res, _ctx| {
+//!     println!("{} {}", req.method, req.uri);
+//!     next!()
+//! }));
 //! ```
 //!
+//! **Manage state:**
+//! ```rust,ignore
+//! use feather::State;
+//! app.context().set_state(State::new(MyConfig { /* ... */ }));
+//! // Later in middleware:
+//! let config = ctx.get_state::<State<MyConfig>>();
+//! ```
+//!
+//! ## Next Steps
+//!
+//! Start with the **[Getting Started Guide](guides::getting_started)** for a comprehensive introduction,
+//! or jump to any specific guide above for deep dives into features you need.
+//!
+//! ## Missing Feature?  
+//!
+//! Don't see something you need? Check out the GitHub repository for issues, feature requests, and contribution guidelines.
+//! Don't hesitate to open an issue or submit a pull request!
+//! 
 //! ---
 
 // --- IMPORTS START ---
@@ -77,6 +88,47 @@ pub mod internals;
 pub mod jwt;
 
 pub mod middlewares;
+
+/// Comprehensive guides and tutorials for Feather.
+///
+/// This module contains detailed guides for various aspects of the Feather framework,
+/// including routing, middleware, state management, and more.
+pub mod guides {
+    /// Quick start guide to get up and running with Feather.
+    ///
+    #[doc = include_str!("docs/getting-started.md")]
+    pub mod getting_started {}
+
+    /// Complete guide to HTTP routing in Feather.
+    ///
+    #[doc = include_str!("docs/routing.md")]
+    pub mod routing {}
+
+    /// Deep dive into the middleware system.
+    ///
+    #[doc = include_str!("docs/middlewares.md")]
+    pub mod middlewares {}
+
+    /// Application-wide state management with AppContext.
+    ///
+    #[doc = include_str!("docs/state-management.md")]
+    pub mod state_management {}
+
+    /// Error handling patterns and best practices.
+    ///
+    #[doc = include_str!("docs/error-handling.md")]
+    pub mod error_handling {}
+
+    /// JWT authentication and protected routes.
+    ///
+    #[doc = include_str!("docs/authentication.md")]
+    pub mod authentication {}
+
+    /// Server configuration and performance tuning.
+    ///
+    #[doc = include_str!("docs/server-configuration.md")]
+    pub mod server_configuration {}
+}
 
 #[cfg(feature = "json")]
 pub use serde_json::{Value, json};
@@ -90,6 +142,8 @@ pub use crate::middlewares::MiddlewareResult;
 pub use feather_runtime::http::{Request, Response};
 pub use internals::{App, AppContext};
 pub use crate::internals::State;
+pub use feather_runtime::runtime::server::ServerConfig;
+
 pub mod prelude {
     pub use crate::next;
     pub use crate::middleware;
@@ -99,6 +153,7 @@ pub mod prelude {
     pub use crate::State;
     pub use crate::Request;
     pub use crate::Response;
+    pub use crate::ServerConfig;
 }
 // --- IMPORTS END ---
 

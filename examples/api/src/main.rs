@@ -8,7 +8,7 @@ use feather::{App, info, json, middleware, middleware_fn, next};
 fn main() {
     // Lets Create a App instance named api
     let mut api = App::new();
-
+    
     // Register the get_handler function for the "/" path
     api.get("/", get_handler);
 
@@ -51,6 +51,7 @@ fn main() {
 // This function will be called when a GET request is made to the "/"
 #[middleware_fn]
 fn get_handler() {
+    
     res.send_html("<h1>Hello I am an Feather Api</h1>");
     next!()
 }

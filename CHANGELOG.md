@@ -3,16 +3,27 @@
 All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.1] - 2025-07-08
+## [0.7.0] - 2025-07-08
 
 ### Overview
-Very minor fix update. 
+Medium Update including fully overhauled Docs(Check out [Docs.rs](https://docs.rs/feather/latest/feather/)) and Some QOL changes and new features
+
+
+### Added
+- New `docs` folder in the feather directory.
+- New `redirect` method on Response [Issue#22](https://github.com/BersisSe/feather/issues/22).
+- New `ServerConfig` struct to Configure the internal Server. [PR-Credit](https://github.com/BersisSe/feather/pull/21)
+- New `with_config` method on the App Struct. [PR-Credit](https://github.com/BersisSe/feather/pull/21)
+- New builder style methods(`max_body`, `workers` eg.) on the App Struct to configure the ServerConfig. New `with_config` method on the App Struct.
+
+### Changed
+- Doc Comments in all of the crates has been improved for clarity.
 
 ### Fixed 
-- Building without the `log` feature
+- Building without the `log` feature [PR-Credit](https://github.com/BersisSe/feather/pull/18)
 
-
-
+### Little Note!
+Thank you all for supporting Feather 💗
 
 ## [0.6.0] - 2025-07-08
 

@@ -1,3 +1,7 @@
+//! Built-in middleware for common functionality.
+//!
+//! This module provides ready-to-use middleware for logging, CORS, and static file serving.
+
 use super::common::Middleware;
 use crate::{Outcome, internals::AppContext, next};
 
@@ -10,24 +14,65 @@ use std::{
     path::Path,
 };
 
-/// Log incoming requests and transparently pass them to the next middleware.
+/// Logs incoming HTTP requests.
+///
+/// This middleware logs the HTTP method and path of each request, then passes
+/// the request to the next middleware without modification.
+///
+/// Requires the `log` feature to be enabled.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use feather::{App, middlewares::builtins::Logger};
+///
+/// let mut app = App::new();
+/// app.use_middleware(Logger);
+/// ```
 pub struct Logger;
 
 impl Middleware for Logger {
-    fn handle(&self, request: &mut Request, _: &mut Response, _: &AppContext) -> Outcome {
+    fn handle(&self, _request: &mut Request, _: &mut Response, _: &AppContext) -> Outcome {
         #[cfg(feature = "log")]
-        info!("{} {}", request.method, request.uri.path(),);
+        info!("{} {}", _request.method, _request.uri.path(),);
         next!()
     }
 }
 
 #[derive(Default)]
-/// Add [CORS] headers to the response.
+/// Adds CORS (Cross-Origin Resource Sharing) headers to responses.
 ///
-/// [CORS]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
+/// This middleware adds the `Access-Control-Allow-Origin` header to all responses,
+/// allowing browsers to make cross-origin requests to your API.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use feather::{App, middlewares::builtins::Cors};
+///
+/// let mut app = App::new();
+///
+/// // Allow all origins
+/// app.use_middleware(Cors::default());
+///
+/// // Allow specific origin
+/// app.use_middleware(Cors::new("https://example.com".to_string()));
+/// ```
 pub struct Cors(Option<String>);
 
 impl Cors {
+    /// Create a CORS middleware for a specific origin.
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` - The allowed origin (e.g., `<https://example.com>`)
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let cors = Cors::new("https://example.com".to_string());
+    /// app.use_middleware(cors);
+    /// ```
     #[must_use]
     pub const fn new(origin: String) -> Self {
         Self(Some(origin))
@@ -41,11 +86,45 @@ impl Middleware for Cors {
     }
 }
 
-/// Serve static files from the given path.
+/// Serves static files from a directory.
+///
+/// This middleware serves static files (HTML, CSS, JavaScript, images, etc.) from
+/// a specified directory. It automatically detects content types based on file extensions.
+///
+/// # Security
+///
+/// - Path traversal attacks are prevented (.. is not allowed)
+/// - Directory listing is disabled
+/// - Only files are served, not directories
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use feather::{App, middlewares::builtins::ServeStatic};
+///
+/// let mut app = App::new();
+/// app.use_middleware(ServeStatic::new("./public".to_string()));
+/// ```
 pub struct ServeStatic(String);
 
 impl ServeStatic {
-    #[must_use = "Put this in a `App.use_middleware()` Method"]
+    /// Create a new static file server for the given directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `directory` - Path to the directory containing static files
+    ///
+    /// # Panics
+    ///
+    /// Does not panic on creation, but returns HTTP errors for invalid paths.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let serve = ServeStatic::new("./public".to_string());
+    /// app.use_middleware(serve);
+    /// ```
+    #[must_use = "This middleware must be added to the app with use_middleware()"]
     pub const fn new(directory: String) -> Self {
         Self(directory)
     }

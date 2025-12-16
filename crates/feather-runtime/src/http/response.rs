@@ -1,6 +1,7 @@
 use super::errors::HeaderError;
 use bytes::{Bytes, BytesMut};
 use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
+#[cfg(feature = "json")]
 use serde::Serialize;
 use std::{fs::File, io::Read, str::FromStr};
 
@@ -190,6 +191,19 @@ impl Response {
                 self.body = Some(Bytes::from("Internal Server Error during file read."));
             }
         }
+    }
+
+    pub fn redirect(&mut self, location: &str, permanent: bool) {
+        let status = if permanent {
+            StatusCode::MOVED_PERMANENTLY
+        } else {
+            StatusCode::FOUND
+        };
+        self.set_status(status.as_u16());
+        self.headers.insert(HeaderName::from_static("location"), HeaderValue::from_str(location).unwrap());
+        self.body = Some(Bytes::from(format!("Redirecting to {}", location)));
+        let len = self.body.as_ref().unwrap().len();
+        self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
     }
 
     /// A Utily Function for wrapping HeaderValue for Content-Lenght

@@ -7,7 +7,6 @@ use feather::{App, next};
 fn main() {
     // Create a new instance of App
     let mut app = App::new();
-
     // Define a route for the root path
     app.get(
         "/",
