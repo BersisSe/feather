@@ -12,8 +12,7 @@
 
 - **Middleware-First Architecture**  
   Everything is a middleware—even if it's not, it produces a middleware in the end.  
-  The new `middleware!` macro makes writing route and middleware closures concise and ergonomic.
-
+  
 - **Easy State Management Using Context**  
   The Context API makes it very easy to manage state without the use of Extractors/Macros.  
 
