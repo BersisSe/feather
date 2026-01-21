@@ -3,10 +3,10 @@
 All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-
 ## [Unreleased] 
 ### Fixed
 - Cargo Test trying to test `guides` module
+- Request Body handling bug happened while receiving large boddies
 
 ### Added
 - New syntatic sugar macros, `end!` & `next_route!` 
@@ -16,7 +16,6 @@ The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0
 
 ### Overview
 Medium Update including fully overhauled Docs(Check out [Docs.rs](https://docs.rs/feather/latest/feather/)) and Some QOL changes and new features
-
 
 ### Added
 - New `docs` folder in the feather directory.

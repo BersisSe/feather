@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use http::StatusCode;
 #[cfg(feature = "log")]
 use log::{debug, info, warn};
@@ -137,92 +138,189 @@ impl Server {
 
         stream.write_all(&response.to_raw())
     }
+
     /// The main coroutine function: reads, dispatches, and manages stream lifecycle.
-    fn conn_handler(mut stream: TcpStream, service: ArcService, config: ServerConfig) -> io::Result<()> {
-        // Use a reasonable buffer size, capped at max_body_size
-        let mut buffer = vec![0u8; config.max_body_size];
-        let mut keep_alive = true;
+    fn conn_handler(
+    mut stream: TcpStream,
+    service: ArcService,
+    config: ServerConfig,
+) -> io::Result<()> {
+    let mut keep_alive = true;
 
-        while keep_alive {
-            // 1. READ PHASE with timeout
-            stream.set_read_timeout(Some(std::time::Duration::from_secs(config.read_timeout_secs)))?;
-            let bytes_read = match stream.read(&mut buffer) {
-                Ok(0) => return Ok(()), // Connection closed
-                Ok(n) if n >= config.max_body_size => {
-                    Self::send_error(&mut stream, StatusCode::PAYLOAD_TOO_LARGE, "Request body too large")?;
-                    return Ok(());
-                }
-                Ok(n) => n,
-                Err(e) => {
-                    if e.kind() == io::ErrorKind::WouldBlock {
-                        Self::send_error(&mut stream, StatusCode::REQUEST_TIMEOUT, "Request timed out")?;
+    while keep_alive {
+        stream.set_read_timeout(Some(std::time::Duration::from_secs(
+            config.read_timeout_secs,
+        )))?;
+
+        /* =========================
+         * 1. READ HEADERS
+         * ========================= */
+        let mut buffer = Vec::new();
+        let mut temp = [0u8; 4096];
+
+        loop {
+            let n = stream.read(&mut temp)?;
+            if n == 0 {
+                return Ok(()); // client closed connection
+            }
+
+            buffer.extend_from_slice(&temp[..n]);
+
+            if buffer.windows(4).any(|w| w == b"\r\n\r\n") {
+                break;
+            }
+
+            if buffer.len() > config.max_body_size {
+                Self::send_error(
+                    &mut stream,
+                    StatusCode::PAYLOAD_TOO_LARGE,
+                    "Headers too large",
+                )?;
+                return Ok(());
+            }
+        }
+
+        let header_end = buffer
+            .windows(4)
+            .position(|w| w == b"\r\n\r\n")
+            .unwrap()
+            + 4;
+
+        let headers_raw = &buffer[..header_end];
+        let mut body = buffer[header_end..].to_vec();
+
+        /* =========================
+         * 2. PARSE HEADERS ONLY
+         * ========================= */
+        let temp_request = match Request::parse(headers_raw, Bytes::new()) {
+            Ok(r) => r,
+            Err(e) => {
+                Self::send_error(
+                    &mut stream,
+                    StatusCode::BAD_REQUEST,
+                    &format!("Invalid request: {}", e),
+                )?;
+                return Ok(());
+            }
+        };
+
+        /* =========================
+         * 3. HANDLE CONNECTION HEADER
+         * ========================= */
+        keep_alive = match (
+            temp_request.version,
+            temp_request.headers.get(http::header::CONNECTION),
+        ) {
+            (http::Version::HTTP_11, Some(v))
+                if v.as_bytes().eq_ignore_ascii_case(b"close") =>
+            {
+                false
+            }
+            (http::Version::HTTP_11, _) => true,
+            _ => false,
+        };
+
+        /* =========================
+         * 4. REJECT CHUNKED ENCODING
+         * ========================= */
+        if temp_request
+            .headers
+            .get(http::header::TRANSFER_ENCODING)
+            .map(|v| v.as_bytes().eq_ignore_ascii_case(b"chunked"))
+            .unwrap_or(false)
+        {
+            Self::send_error(
+                &mut stream,
+                StatusCode::NOT_IMPLEMENTED,
+                "Chunked transfer encoding not supported",
+            )?;
+            return Ok(());
+        }
+
+        /* =========================
+         * 5. READ BODY (Content-Length)
+         * ========================= */
+        let content_length = temp_request
+            .headers
+            .get(http::header::CONTENT_LENGTH)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(0);
+
+        if content_length > config.max_body_size {
+            Self::send_error(
+                &mut stream,
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "Request body too large",
+            )?;
+            return Ok(());
+        }
+
+        while body.len() < content_length {
+            let n = stream.read(&mut temp)?;
+            if n == 0 {
+                break;
+            }
+
+            body.extend_from_slice(&temp[..n]);
+
+            if body.len() > config.max_body_size {
+                Self::send_error(
+                    &mut stream,
+                    StatusCode::PAYLOAD_TOO_LARGE,
+                    "Request body too large",
+                )?;
+                return Ok(());
+            }
+        }
+
+        /* =========================
+         * 6. BUILD FINAL REQUEST
+         * ========================= */
+        let request = match Request::parse(headers_raw, Bytes::from(body)) {
+            Ok(r) => r,
+            Err(e) => {
+                Self::send_error(
+                    &mut stream,
+                    StatusCode::BAD_REQUEST,
+                    &format!("Invalid request: {}", e),
+                )?;
+                return Ok(());
+            }
+        };
+
+        /* =========================
+         * 7. DISPATCH
+         * ========================= */
+        let result = service.handle(request, None);
+
+        match result {
+            Ok(ServiceResult::Response(response)) => {
+                let raw = response.to_raw();
+                stream.write_all(&raw)?;
+                stream.flush()?;
+
+                if let Some(conn) = response.headers.get(http::header::CONNECTION) {
+                    if conn.as_bytes().eq_ignore_ascii_case(b"close") {
+                        return Ok(());
                     }
-                    return Err(e);
-                }
-            };
-
-            // 2. PARSE PHASE with improved error handling
-            let request = match Request::parse(&buffer[..bytes_read]) {
-                Ok(req) => {
-                    // Update keep_alive based on request headers and HTTP version
-                    keep_alive = match (req.version, req.headers.get(http::header::CONNECTION)) {
-                        (http::Version::HTTP_11, Some(v)) => v.as_bytes().eq_ignore_ascii_case(b"keep-alive"),
-                        (http::Version::HTTP_11, None) => true, // HTTP/1.1 defaults to keep-alive
-                        _ => false,                             // HTTP/1.0 and others default to close
-                    };
-                    req
-                }
-                Err(e) => {
-                    Self::send_error(&mut stream, StatusCode::BAD_REQUEST, &format!("Invalid request: {}", e))?;
-                    return Ok(());
-                }
-            };
-
-            // 3. SERVICE DISPATCH PHASE (Ownership Transfer)
-
-            let result = service.handle(request, None);
-
-            // 4. HANDLE RESULT & I/O
-            match result {
-                Ok(ServiceResult::Response(response)) => {
-                    // *** RE-ACQUIRE STREAM (Simplified) ***
-                    // NOTE: This is the critical architectural issue: the stream ownership must be returned
-                    // by the service if it was not Consumed. For now, we assume ownership is re-acquired.
-                    // This line would fail without the stream being returned from the service.
-                    // To proceed, we enforce `Connection: Close` and rely on the variable being moved back.
-
-                    let raw_response = response.to_raw();
-                    stream.write_all(&raw_response)?;
-                    stream.flush()?;
-
-                    // Check Connection header for keep-alive
-                    // NOTE: If keep-alive is intended, you must skip the buffer reuse step.
-                    if let Some(connection) = response.headers.get(http::header::CONNECTION) {
-                        if connection.as_bytes().eq_ignore_ascii_case(b"close") {
-                            return Ok(());
-                        }
-                    }
-
-                    // ⭐️ NO NEED TO CLEAR THE BUFFER IF THE NEXT READ OVERWRITES IT!
-                    // The next stream.read() will start at buffer[0]. The data at buffer[bytes_read..8192]
-                    // is old, but bytes_read will correctly bound the next read slice.
-                    // We simply loop back to `stream.read(&mut buffer)?`
-                }
-
-                Ok(ServiceResult::Consumed) => {
-                    return Ok(());
-                }
-
-                Err(e) => {
-                    Self::send_error(&mut stream, http::StatusCode::INTERNAL_SERVER_ERROR, &format!("Internal error: {}", e))?;
-                    return Ok(());
                 }
             }
 
-            // If the connection is Keep-Alive, the loop continues.
-            // The buffer is implicitly "cleared" by the bounds of the next stream.read().
-            // We only need to reset the connection status logic for the next iteration.
+            Ok(ServiceResult::Consumed) => return Ok(()),
+
+            Err(e) => {
+                Self::send_error(
+                    &mut stream,
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Internal error: {}", e),
+                )?;
+                return Ok(());
+            }
         }
-        Ok(())
     }
+
+    Ok(())
+}
+
 }

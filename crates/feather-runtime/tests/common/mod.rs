@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use feather_runtime::http::{Request, Response};
 use feather_runtime::runtime::service::{Service, ServiceResult};
 use may::net::TcpStream;
@@ -26,4 +27,18 @@ pub fn create_test_request(method: &str, path: &str, body: &[u8]) -> Vec<u8> {
     request.extend_from_slice(b"\r\n");
     request.extend_from_slice(body);
     request
+}
+
+
+pub fn split_request(buf: &[u8]) -> (&[u8], Bytes) {
+    let header_end = buf
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .map(|p| p + 4)
+        .unwrap_or(buf.len());
+
+    let headers = &buf[..header_end];
+    let body = Bytes::copy_from_slice(&buf[header_end..]);
+
+    (headers, body)
 }

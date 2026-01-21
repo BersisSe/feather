@@ -31,11 +31,11 @@ pub struct Request {
 
 impl Request {
     /// Parses a Request from raw bytes if parsing fails returns a error
-    pub fn parse(raw: &[u8]) -> Result<Request, Error> {
+    pub fn parse(headers_raw: &[u8], body: Bytes) -> Result<Request, Error> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut request = httparse::Request::new(&mut headers);
 
-        request.parse(raw).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse request: {}", e))) })?;
+        request.parse(headers_raw).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse request: {}", e))) })?;
 
         // Get the method string, ensuring it exists
         let method_str = request.method.ok_or_else(|| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, "Missing HTTP method")) })?;
@@ -57,8 +57,7 @@ impl Request {
 
             header_map.insert(name, value);
         }
-        let body_start = raw.windows(4).position(|w| w == b"\r\n\r\n").map(|pos| pos + 4).unwrap_or(raw.len());
-        let body = Bytes::copy_from_slice(&raw[body_start..]);
+        
         let extensions = Extensions::new();
         Ok(Request {
             method,
