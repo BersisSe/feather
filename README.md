@@ -10,7 +10,7 @@
 
 ## Why Feather?
 
-- **Simplicity over Complexity**
+- **Simplicity over Complexity**  
   Feather chooses on simple, easy to use APIs over complex and hard-to-learn abstractions.
   
 - **Easy State Management Using Context**  
