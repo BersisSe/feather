@@ -140,187 +140,145 @@ impl Server {
     }
 
     /// The main coroutine function: reads, dispatches, and manages stream lifecycle.
-    fn conn_handler(
-    mut stream: TcpStream,
-    service: ArcService,
-    config: ServerConfig,
-) -> io::Result<()> {
-    let mut keep_alive = true;
+    fn conn_handler(mut stream: TcpStream, service: ArcService, config: ServerConfig) -> io::Result<()> {
+        let mut keep_alive = true;
+        let mut pipeline_buffer: Vec<u8> = Vec::new();
 
-    while keep_alive {
-        stream.set_read_timeout(Some(std::time::Duration::from_secs(
-            config.read_timeout_secs,
-        )))?;
+        while keep_alive {
+            stream.set_read_timeout(Some(std::time::Duration::from_secs(config.read_timeout_secs)))?;
 
-        /* =========================
-         * 1. READ HEADERS
-         * ========================= */
-        let mut buffer = Vec::new();
-        let mut temp = [0u8; 4096];
+            let mut body = pipeline_buffer;
+            pipeline_buffer = Vec::new();
+            /* =========================
+             * 1. READ HEADERS
+             * ========================= */
+            let mut buffer = body;
+            let mut temp = [0u8; 4096];
 
-        loop {
-            let n = stream.read(&mut temp)?;
-            if n == 0 {
-                return Ok(()); // client closed connection
-            }
+            loop {
+                let prev_len = buffer.len();
+                let n = stream.read(&mut temp)?;
+                if n == 0 {
+                    return Ok(()); // client closed connection
+                }
 
-            buffer.extend_from_slice(&temp[..n]);
+                buffer.extend_from_slice(&temp[..n]);
 
-            if buffer.windows(4).any(|w| w == b"\r\n\r\n") {
-                break;
-            }
+                // Check for boundary, starting from up to 3 bytes before new data
+                // to catch boundaries split across reads
+                let check_from = prev_len.saturating_sub(3);
+                if buffer[check_from..].windows(4).any(|w| w == b"\r\n\r\n") {
+                    break;
+                }
 
-            if buffer.len() > config.max_body_size {
-                Self::send_error(
-                    &mut stream,
-                    StatusCode::PAYLOAD_TOO_LARGE,
-                    "Headers too large",
-                )?;
-                return Ok(());
-            }
-        }
-
-        let header_end = buffer
-            .windows(4)
-            .position(|w| w == b"\r\n\r\n")
-            .unwrap()
-            + 4;
-
-        let headers_raw = &buffer[..header_end];
-        let mut body = buffer[header_end..].to_vec();
-
-        /* =========================
-         * 2. PARSE HEADERS ONLY
-         * ========================= */
-        let temp_request = match Request::parse(headers_raw, Bytes::new()) {
-            Ok(r) => r,
-            Err(e) => {
-                Self::send_error(
-                    &mut stream,
-                    StatusCode::BAD_REQUEST,
-                    &format!("Invalid request: {}", e),
-                )?;
-                return Ok(());
-            }
-        };
-
-        /* =========================
-         * 3. HANDLE CONNECTION HEADER
-         * ========================= */
-        keep_alive = match (
-            temp_request.version,
-            temp_request.headers.get(http::header::CONNECTION),
-        ) {
-            (http::Version::HTTP_11, Some(v))
-                if v.as_bytes().eq_ignore_ascii_case(b"close") =>
-            {
-                false
-            }
-            (http::Version::HTTP_11, _) => true,
-            _ => false,
-        };
-
-        /* =========================
-         * 4. REJECT CHUNKED ENCODING
-         * ========================= */
-        if temp_request
-            .headers
-            .get(http::header::TRANSFER_ENCODING)
-            .map(|v| v.as_bytes().eq_ignore_ascii_case(b"chunked"))
-            .unwrap_or(false)
-        {
-            Self::send_error(
-                &mut stream,
-                StatusCode::NOT_IMPLEMENTED,
-                "Chunked transfer encoding not supported",
-            )?;
-            return Ok(());
-        }
-
-        /* =========================
-         * 5. READ BODY (Content-Length)
-         * ========================= */
-        let content_length = temp_request
-            .headers
-            .get(http::header::CONTENT_LENGTH)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(0);
-
-        if content_length > config.max_body_size {
-            Self::send_error(
-                &mut stream,
-                StatusCode::PAYLOAD_TOO_LARGE,
-                "Request body too large",
-            )?;
-            return Ok(());
-        }
-
-        while body.len() < content_length {
-            let n = stream.read(&mut temp)?;
-            if n == 0 {
-                break;
-            }
-
-            body.extend_from_slice(&temp[..n]);
-
-            if body.len() > config.max_body_size {
-                Self::send_error(
-                    &mut stream,
-                    StatusCode::PAYLOAD_TOO_LARGE,
-                    "Request body too large",
-                )?;
-                return Ok(());
-            }
-        }
-
-        /* =========================
-         * 6. BUILD FINAL REQUEST
-         * ========================= */
-        let request = match Request::parse(headers_raw, Bytes::from(body)) {
-            Ok(r) => r,
-            Err(e) => {
-                Self::send_error(
-                    &mut stream,
-                    StatusCode::BAD_REQUEST,
-                    &format!("Invalid request: {}", e),
-                )?;
-                return Ok(());
-            }
-        };
-
-        /* =========================
-         * 7. DISPATCH
-         * ========================= */
-        let result = service.handle(request, None);
-
-        match result {
-            Ok(ServiceResult::Response(response)) => {
-                let raw = response.to_raw();
-                stream.write_all(&raw)?;
-                stream.flush()?;
-
-                if let Some(conn) = response.headers.get(http::header::CONNECTION) {
-                    if conn.as_bytes().eq_ignore_ascii_case(b"close") {
-                        return Ok(());
-                    }
+                if buffer.len() > config.max_body_size {
+                    Self::send_error(&mut stream, StatusCode::PAYLOAD_TOO_LARGE, "Headers too large")?;
+                    return Ok(());
                 }
             }
 
-            Ok(ServiceResult::Consumed) => return Ok(()),
+            let header_end = buffer.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
 
-            Err(e) => {
-                Self::send_error(
-                    &mut stream,
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("Internal error: {}", e),
-                )?;
+            let headers_raw = &buffer[..header_end];
+            let mut body = buffer[header_end..].to_vec();
+
+            /* =========================
+             * 2. PARSE HEADERS ONLY
+             * ========================= */
+            let temp_request = match Request::parse(headers_raw, Bytes::new()) {
+                Ok(r) => r,
+                Err(e) => {
+                    Self::send_error(&mut stream, StatusCode::BAD_REQUEST, &format!("Invalid request: {}", e))?;
+                    return Ok(());
+                }
+            };
+            /* =========================
+             * 3. REJECT CHUNKED ENCODING
+             * ========================= */
+
+            if temp_request.headers.get(http::header::TRANSFER_ENCODING).map(|v| v.as_bytes().eq_ignore_ascii_case(b"chunked")).unwrap_or(false) {
+                Self::send_error(&mut stream, StatusCode::NOT_IMPLEMENTED, "Chunked transfer encoding not supported")?;
                 return Ok(());
             }
+
+            /* =========================
+             * 4. HANDLE CONNECTION HEADER
+             * ========================= */
+            keep_alive = match (temp_request.version, temp_request.headers.get(http::header::CONNECTION)) {
+                (http::Version::HTTP_11, Some(v)) if v.as_bytes().eq_ignore_ascii_case(b"close") => false,
+                (http::Version::HTTP_11, _) => true,
+                _ => false,
+            };
+
+            /* =========================
+             * 5. READ BODY (Content-Length) — FIXED
+             * ========================= */
+
+            let content_length = temp_request.headers.get(http::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<usize>().ok()).unwrap_or(0);
+
+            if content_length > config.max_body_size {
+                Self::send_error(&mut stream, StatusCode::PAYLOAD_TOO_LARGE, "Request body too large")?;
+                return Ok(());
+            }
+
+            // If we already read more than needed,  save excess for next request
+            if body.len() > content_length {
+                pipeline_buffer = body.split_off(content_length);
+            }
+
+            while body.len() < content_length {
+                let n = stream.read(&mut temp)?;
+                if n == 0 {
+                    Self::send_error(&mut stream, StatusCode::BAD_REQUEST, "Unexpected EOF while reading request body")?;
+                    return Ok(());
+                }
+
+                body.extend_from_slice(&temp[..n]);
+            }
+            if body.len() > content_length {
+                pipeline_buffer = body.split_off(content_length);
+            }
+
+            /* =========================
+             * 6. BUILD FINAL REQUEST
+             * ========================= */
+            let request = match Request::parse(headers_raw, Bytes::from(body)) {
+                Ok(r) => r,
+                Err(e) => {
+                    Self::send_error(&mut stream, StatusCode::BAD_REQUEST, &format!("Invalid request: {}", e))?;
+                    return Ok(());
+                }
+            };
+
+            /* =========================
+             * 7. DISPATCH
+             * ========================= */
+            let result = service.handle(request, None);
+
+            match result {
+                Ok(ServiceResult::Response(response)) => {
+                    let raw = response.to_raw();
+                    stream.write_all(&raw)?;
+                    stream.flush()?;
+                    if !keep_alive {
+                        return Ok(());
+                    }
+                    if let Some(conn) = response.headers.get(http::header::CONNECTION) {
+                        if conn.as_bytes().eq_ignore_ascii_case(b"close") {
+                            return Ok(());
+                        }
+                    }
+                }
+
+                Ok(ServiceResult::Consumed) => return Ok(()),
+
+                Err(e) => {
+                    Self::send_error(&mut stream, StatusCode::INTERNAL_SERVER_ERROR, &format!("Internal error: {}", e))?;
+                    return Ok(());
+                }
+            }
         }
+
+        Ok(())
     }
-
-    Ok(())
-}
-
 }
