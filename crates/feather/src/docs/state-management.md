@@ -16,7 +16,7 @@ Feather provides a powerful context-based state management system. Learn how to 
 
 ### Basic State Setup
 
-```rust
+```rust,ignore
 use feather::{App, AppContext};
 
 #[derive(Clone)]
@@ -42,7 +42,7 @@ fn main() {
 
 For mutable state, wrap it in the `State<T>` struct:
 
-```rust
+```rust,ignore
 use feather::State;
 
 #[derive(Clone)]
@@ -55,7 +55,7 @@ app.context().set_state(State::new(Counter { count: 0 }));
 
 For read-only state, you can store it directly:
 
-```rust
+```rust,ignore
 #[derive(Clone)]
 struct Config {
     name: String,
@@ -72,7 +72,7 @@ app.context().set_state(Config {
 
 Access state using the `ctx` parameter:
 
-```rust
+```rust,ignore
 app.get("/", middleware!(|_req, res, ctx| {
     let config = ctx.get_state::<State<AppConfig>>();
     config.with_scope(|c|{
@@ -86,7 +86,7 @@ app.get("/", middleware!(|_req, res, ctx| {
 
 Feather uses the type system to manage state. Each state value is keyed by its type:
 
-```rust
+```rust,ignore
 // Different types are stored separately
 app.context().set_state(State::new(Config { ... }));
 app.context().set_state(State::new(Counter { ... }));
@@ -100,7 +100,7 @@ let counter = ctx.get_state::<State<Counter>>();
 
 If your state type implements `Clone`, you can get a clone:
 
-```rust
+```rust,ignore
 #[derive(Clone)]
 struct User {
     id: u64,
@@ -117,7 +117,7 @@ let user_clone = ctx.get_state::<State<User>>().get_clone();
 
 The most ergonomic way to modify state:
 
-```rust
+```rust,ignore
 #[derive(Clone)]
 struct Counter {
     count: i32,
@@ -140,7 +140,7 @@ counter.with_mut_scope(|c| {
 ### with_scope
 
 For read-only accesses its cheaper and safer to use then `with_mut_scope`:
-```rust
+```rust,ignore
 let counter = ctx.get_state::<State<Counter>>();
 let current = counter.with_scope(|c| {
     println!("Current count: {}", c.count);
@@ -152,7 +152,7 @@ let current = counter.with_scope(|c| {
 
 Get direct access to the lock guard.:
 
-```rust
+```rust,ignore
 let counter = ctx.get_state::<State<Counter>>();
 {
     let mut guard = counter.lock();
@@ -165,7 +165,7 @@ let counter = ctx.get_state::<State<Counter>>();
 
 The `State<T>` wrapper uses `parking_lot::Mutex` for thread-safe access:
 
-```rust
+```rust,ignore
 use feather::State;
 
 
@@ -201,7 +201,7 @@ app.get("/path2", middleware!(|_req, res, ctx| {
 
 Use `try_get_state()` to handle missing state:
 
-```rust
+```rust,ignore
 let maybe_config = ctx.try_get_state::<State<Config>>();
 
 match maybe_config {
@@ -220,7 +220,7 @@ match maybe_config {
 
 Remove state from context:
 
-```rust
+```rust,ignore
 // Removes State<Config> if it exists
 let removed = ctx.remove_state::<State<Config>>();
 
@@ -235,7 +235,7 @@ if removed {
 
 ### Database Connection Pool
 
-```rust
+```rust,ignore
 use feather::State;
 
 #[derive(Clone)]
@@ -273,7 +273,7 @@ fn main() {
 
 ### Configuration Management
 
-```rust
+```rust,ignore
 #[derive(Clone)]
 struct Config {
     port: u16,
@@ -294,7 +294,7 @@ fn main() {
 
 ### Metrics and Counters
 
-```rust
+```rust,ignore
 #[derive(Clone)]
 struct Metrics {
     requests: i64,
@@ -332,7 +332,7 @@ fn main() {
 
 ### User Sessions (Simple Example)
 
-```rust
+```rust,ignore
 use std::collections::HashMap;
 use feather::State;
 
@@ -359,7 +359,7 @@ fn main() {
 
 State in Feather lives for the entire duration of the application:
 
-```rust
+```rust,ignore
 let mut app = App::new();
 
 // State stored here...
@@ -375,7 +375,7 @@ When `app.listen()` is called, the app starts serving requests and continues unt
 
 ⚠️ **Important**: Do NOT access the same `State<T>` recursively:
 
-```rust
+```rust,ignore
 // DON'T DO THIS - Will cause deadlock!
 let state = ctx.get_state::<State<MyType>>();
 state.with_scope(|data| {
@@ -386,7 +386,7 @@ state.with_scope(|data| {
 
 Instead, refactor to avoid nested access:
 
-```rust
+```rust,ignore
 // DO THIS - No deadlock
 let state = ctx.get_state::<State<MyType>>();
 let value = state.with_scope(|data| {

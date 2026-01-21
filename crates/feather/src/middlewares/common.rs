@@ -40,6 +40,8 @@ pub enum MiddlewareResult {
     /// Use this to abort the current request processing and prevent subsequent
     /// middleware from executing.
     NextRoute,
+    /// Response is handled send it now.
+    End,
 }
 
 /// Implement the `Middleware` trait for a slice of middleware.
@@ -49,8 +51,11 @@ where
 {
     fn handle(&self, request: &mut Request, response: &mut Response, ctx: &AppContext) -> Outcome {
         for middleware in self {
-            if matches!(middleware.handle(request, response, ctx), Ok(MiddlewareResult::NextRoute)) {
-                return Ok(MiddlewareResult::NextRoute);
+            let res = middleware.handle(request, response, ctx)?;
+            match res {
+                MiddlewareResult::Next => continue,
+                MiddlewareResult::NextRoute => return Ok(MiddlewareResult::NextRoute),
+                MiddlewareResult::End => return Ok(MiddlewareResult::End),
             }
         }
         Ok(MiddlewareResult::Next)
@@ -102,6 +107,7 @@ where
         match a.handle(request, response, ctx) {
             Ok(MiddlewareResult::Next) => b.handle(request, response, ctx),
             Ok(MiddlewareResult::NextRoute) => Ok(MiddlewareResult::NextRoute),
+            Ok(MiddlewareResult::End) => Ok(MiddlewareResult::End), 
             Err(e) => Err(e),
         }
     }

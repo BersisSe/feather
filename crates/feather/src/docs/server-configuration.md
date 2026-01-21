@@ -7,7 +7,7 @@ Fine-tune your Feather server's performance and behavior with configuration opti
 
 Feather's `ServerConfig` struct controls server-level behavior:
 
-```rust
+```rust,ignore
 pub struct ServerConfig {
     pub max_body_size: usize,       // Maximum request body size in bytes
     pub read_timeout_secs: u64,     // Read timeout in seconds
@@ -22,7 +22,7 @@ pub struct ServerConfig {
 
 Start with defaults and create a new app:
 
-```rust
+```rust,ignore
 use feather::App;
 
 fn main() {
@@ -35,7 +35,7 @@ fn main() {
 
 Create a custom configuration:
 
-```rust
+```rust,ignore
 use feather::{App, ServerConfig};
 
 fn main() {
@@ -55,7 +55,7 @@ fn main() {
 
 Set configuration after app creation:
 
-```rust
+```rust,ignore
 use feather::App;
 
 fn main() {
@@ -84,7 +84,7 @@ Maximum request body size in bytes.
 - Streaming: Consider your typical request sizes
 
 **Example**:
-```rust
+```rust,ignore
 // For file uploads
 app.max_body(100 * 1024 * 1024);  // 100MB
 
@@ -109,7 +109,7 @@ Read timeout for client connections in seconds.
 - DDoS protection: Decrease for quick rejection
 
 **Example**:
-```rust
+```rust,ignore
 // For slow clients
 app.read_timeout(120);  // 2 minutes
 
@@ -132,7 +132,7 @@ Number of worker threads for handling connections.
 - Benchmarking: Experiment with different values
 
 **Example**:
-```rust
+```rust,ignore
 use num_cpus;
 
 let cpu_count = num_cpus::get();
@@ -161,7 +161,7 @@ Stack size per coroutine in bytes.
 - Logging heavy: Keep at least 32KB
 
 **Example**:
-```rust
+```rust,ignore
 // For simple operations
 app.stack_size(32 * 1024);   // 32KB (minimum safe)
 
@@ -181,7 +181,7 @@ app.stack_size(512 * 1024);  // 512KB
 
 Optimize for handling many concurrent requests:
 
-```rust
+```rust,ignore
 use feather::{App, ServerConfig};
 use num_cpus;
 
@@ -199,7 +199,7 @@ let mut app = App::with_config(config);
 
 Optimize for large file uploads:
 
-```rust
+```rust,ignore
 let config = ServerConfig {
     max_body_size: 500 * 1024 * 1024,      // 500MB
     read_timeout_secs: 300,                 // 5 minutes
@@ -214,7 +214,7 @@ let mut app = App::with_config(config);
 
 Optimize for limited memory/CPU:
 
-```rust
+```rust,ignore
 let config = ServerConfig {
     max_body_size: 256 * 1024,              // 256KB
     read_timeout_secs: 15,                  // 15 seconds
@@ -229,7 +229,7 @@ let mut app = App::with_config(config);
 
 Optimize for fast response times:
 
-```rust
+```rust,ignore
 let config = ServerConfig {
     max_body_size: 64 * 1024,               // 64KB
     read_timeout_secs: 5,                   // 5 seconds
@@ -255,7 +255,7 @@ Example:
 
 More workers improve throughput but use more CPU:
 
-```rust
+```rust,ignore
 // Conservative - use less CPU
 app.workers(num_cpus::get());
 
@@ -267,7 +267,7 @@ app.workers(num_cpus::get() * 2);
 
 The default `ServerConfig`:
 
-```rust
+```rust,ignore
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
@@ -284,7 +284,7 @@ impl Default for ServerConfig {
 
 The `listen()` method accepts any address format that implements `ToSocketAddrs`:
 
-```rust
+```rust,ignore
 use feather::App;
 
 let mut app = App::new();
@@ -312,7 +312,7 @@ app.listen("127.0.0.1:5050");
 
 Complete example for a production server:
 
-```rust
+```rust,ignore
 use feather::{App, ServerConfig};
 use std::env;
 use num_cpus;

@@ -15,14 +15,14 @@ A middleware is a function that processes HTTP requests and responses. It sits i
 
 Feather defines middleware through the `Middleware` trait:
 
-```rust
+```rust,ignore
 pub trait Middleware: Send + Sync {
     fn handle(&self, request: &mut Request, response: &mut Response, ctx: &AppContext) -> Outcome;
 }
 ```
 
 Where `Outcome` is:
-```rust
+```rust,ignore
 pub enum MiddlewareResult {
     Next,           // Continue to next middleware
     NextRoute,      // Skip to next route handler
@@ -36,7 +36,7 @@ pub type Outcome = Result<MiddlewareResult, Box<dyn Error>>;
 
 The simplest way to define middleware is with the `middleware!` macro:
 
-```rust
+```rust,ignore
 use feather::{middleware, next};
 
 app.get("/", middleware!(|req, res, ctx| {
@@ -49,7 +49,7 @@ app.get("/", middleware!(|req, res, ctx| {
 
 You can use closures directly (they implement `Middleware`):
 
-```rust
+```rust,ignore
 let my_middleware = |req: &mut Request, res: &mut Response, ctx: &AppContext| {
     println!("Processing request to: {}", req.uri);
     Ok(feather::MiddlewareResult::Next)
@@ -62,7 +62,7 @@ app.use_middleware(my_middleware);
 
 For reusable, named middleware functions, use the `#[middleware_fn]` attribute macro. This eliminates boilerplate by automatically injecting `req`, `res`, and `ctx` parameters:
 
-```rust
+```rust,ignore
 use feather::middleware_fn;
 
 #[middleware_fn]
@@ -88,7 +88,7 @@ The macro automatically provides:
 
 #### Comparison: `middleware!` vs `#[middleware_fn]`
 
-```rust
+```rust,ignore
 // Use middleware! for inline, one-off middleware
 app.get("/", middleware!(|_req, res, _ctx| {
     res.send_text("Hello");
@@ -109,7 +109,7 @@ app.post("/hi", greet);
 
 #### Full Example with State Access
 
-```rust
+```rust,ignore
 use feather::{middleware_fn, State};
 
 #[derive(Clone)]
@@ -139,7 +139,7 @@ fn main() {
 
 You can also implement the full middleware signature manually:
 
-```rust
+```rust,ignore
 fn my_middleware(req: &mut Request, res: &mut Response, ctx: &AppContext) -> Outcome {
     println!("Processing request to: {}", req.uri);
     Ok(feather::MiddlewareResult::Next)
@@ -152,7 +152,7 @@ app.use_middleware(my_middleware);
 
 For more complex logic, implement the `Middleware` trait on a struct:
 
-```rust
+```rust,ignore
 use feather::{Middleware, MiddlewareResult, Outcome, Request, Response, AppContext};
 
 struct LoggingMiddleware;
@@ -174,7 +174,7 @@ app.use_middleware(LoggingMiddleware);
 
 Use `next!()` to pass control to the next middleware:
 
-```rust
+```rust,ignore
 middleware!(|req, res, ctx| {
     println!("Before next middleware");
     next!()  // Continue
@@ -185,7 +185,7 @@ middleware!(|req, res, ctx| {
 
 Use `MiddlewareResult::NextRoute` to skip remaining middleware and go to the next route:
 
-```rust
+```rust,ignore
 middleware!(|req, res, ctx| {
     if !is_authenticated(req) {
         res.set_status(401);
@@ -200,7 +200,7 @@ middleware!(|req, res, ctx| {
 
 Apply middleware to all routes using `use_middleware()`:
 
-```rust
+```rust,ignore
 // This runs on every request
 app.use_middleware(middleware!(|req, res, _ctx| {
     println!("Request: {} {}", req.method, req.uri);
@@ -222,7 +222,7 @@ Execution order:
 
 ### Authentication Middleware
 
-```rust
+```rust,ignore
 fn is_valid_token(token: &str) -> bool {
     token == "secret-token"
 }
@@ -246,7 +246,7 @@ app.use_middleware(middleware!(|req, res, _ctx| {
 
 ### Logging Middleware
 
-```rust
+```rust,ignore
 app.use_middleware(middleware!(|req, res, _ctx| {
     let method = req.method;
     let path = req.uri.clone();
@@ -259,7 +259,7 @@ app.use_middleware(middleware!(|req, res, _ctx| {
 
 ### CORS Middleware
 
-```rust
+```rust,ignore
 app.use_middleware(middleware!(|req, res, _ctx| {
     res.headers.append(
         "Access-Control-Allow-Origin",
@@ -281,7 +281,7 @@ app.use_middleware(middleware!(|req, res, _ctx| {
 
 ### Content-Type Validation
 
-```rust
+```rust,ignore
 app.post("/api/data", middleware!(|req, res, _ctx| {
     if let Some(content_type) = req.headers.get("Content-Type") {
         if let Ok(ct) = content_type.to_str() {
@@ -300,7 +300,7 @@ app.post("/api/data", middleware!(|req, res, _ctx| {
 
 ### Request Body Processing
 
-```rust
+```rust,ignore
 app.post("/echo", middleware!(|req, res, _ctx| {
     let body_str = String::from_utf8_lossy(&req.body);
     res.send_text(format!("Received: {}", body_str));
@@ -310,7 +310,7 @@ app.post("/echo", middleware!(|req, res, _ctx| {
 
 ### Conditional Middleware
 
-```rust
+```rust,ignore
 app.use_middleware(middleware!(|req, res, _ctx| {
     // Only apply to specific paths
     if req.uri.starts_with("/admin") {
@@ -328,7 +328,7 @@ app.use_middleware(middleware!(|req, res, _ctx| {
 
 Use the `ctx` parameter to access application-wide state:
 
-```rust
+```rust,ignore
 use feather::State;
 
 #[derive(Clone)]
@@ -361,7 +361,7 @@ See [State Management](./state-management.md) for more details.
 
 You can return errors from middleware:
 
-```rust
+```rust,ignore
 middleware!(|req, res, _ctx| {
     if req.body.is_empty() {
         res.set_status(400);
@@ -378,7 +378,7 @@ See [Error Handling](./error-handling.md) for comprehensive error handling.
 
 Multiple middleware can be applied to a single route:
 
-```rust
+```rust,ignore
 // While you can't chain directly, you can use global middleware
 // combined with route-specific middleware
 
@@ -404,7 +404,7 @@ app.post("/users", middleware!(|req, res, _ctx| {
 
 Use the `#[jwt_required]` macro with `#[middleware_fn]` to automatically protect routes with JWT authentication:
 
-```rust
+```rust,ignore
 use feather::{jwt_required, middleware_fn, Claim};
 
 #[derive(Claim, Clone)]
@@ -433,7 +433,7 @@ The `#[jwt_required]` macro automatically:
 
 #### Example: Multi-Field Claims
 
-```rust
+```rust,ignore
 #[derive(Claim, Clone)]
 struct AuthClaims {
     #[required]

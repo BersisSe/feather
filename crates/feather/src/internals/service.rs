@@ -25,7 +25,9 @@ impl AppService {
 
         for middleware in global_middleware {
             match middleware.handle(&mut request, &mut response, &context) {
-                Ok(_) => {}
+                Ok(crate::middlewares::MiddlewareResult::Next) => {}
+                Ok(crate::middlewares::MiddlewareResult::NextRoute) => break, 
+                Ok(crate::middlewares::MiddlewareResult::End) => return response,
                 Err(e) => {
                     if let Some(handler) = &error_handler {
                         handler(e, &request, &mut response)
@@ -44,7 +46,8 @@ impl AppService {
             if let Some(params) = Self::match_route(&route.path, &request.path()) {
                 request.set_params(params);
                 match route.middleware.handle(request, &mut response, &context) {
-                    Ok(_) => {}
+                    Ok(crate::middlewares::MiddlewareResult::End) => return response, 
+                    Ok(_) => {} 
                     Err(e) => {
                         if let Some(handler) = &error_handler {
                             handler(e, &request, &mut response)

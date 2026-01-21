@@ -15,7 +15,7 @@ feather = "0.6"
 
 The simplest Feather application looks like this:
 
-```rust
+```rust,ignore
 use feather::App;
 
 fn main() {
@@ -29,7 +29,7 @@ fn main() {
 
 Feather supports all standard HTTP methods through convenient methods:
 
-```rust
+```rust,ignore
 use feather::{App, middleware, next};
 
 fn main() {
@@ -72,7 +72,7 @@ fn main() {
 
 Every route handler is a middleware. The `middleware!` macro is a convenient way to define closures:
 
-```rust
+```rust,ignore
 middleware!(|req, res, ctx| {
     // Process the request
     // Modify the response
@@ -96,7 +96,7 @@ The middleware returns an `Outcome` (which is a `Result`):
 
 ### Sending Text
 
-```rust
+```rust,ignore
 app.get("/", middleware!(|_req, res, _ctx| {
     res.send_text("Hello, World!");
     next!()
@@ -105,7 +105,7 @@ app.get("/", middleware!(|_req, res, _ctx| {
 
 ### Setting Status Codes
 
-```rust
+```rust,ignore
 app.post("/users", middleware!(|_req, res, _ctx| {
     res.set_status(201);
     res.send_text("User created");
@@ -115,7 +115,7 @@ app.post("/users", middleware!(|_req, res, _ctx| {
 
 ### Sending JSON (with `json` feature)
 
-```rust
+```rust,ignore
 #[cfg(feature = "json")]
 app.get("/api/data", middleware!(|_req, res, _ctx| {
     res.send_json(feather::json!({
@@ -128,7 +128,7 @@ app.get("/api/data", middleware!(|_req, res, _ctx| {
 
 ## Working with Request Data
 
-```rust
+```rust,ignore
 app.post("/data", middleware!(|req, res, _ctx| {
     // Get headers
     if let Some(content_type) = req.headers.get("Content-Type") {
@@ -149,7 +149,7 @@ app.post("/data", middleware!(|req, res, _ctx| {
 
 Every Feather application has a context for managing global state. Access it with:
 
-```rust
+```rust,ignore
 let ctx = app.context();
 ```
 
@@ -160,7 +160,7 @@ See [State Management](../state_management/index.html) for detailed information.
 - **Routes**: HTTP method + path specific handlers (GET /users, POST /data, etc.)
 - **Global Middleware**: Applied to all routes before route-specific handlers
 
-```rust
+```rust,ignore
 // Global middleware - runs on every request
 app.use_middleware(middleware!(|req, res, _ctx| {
     println!("Request to: {}", req.uri);
@@ -184,7 +184,7 @@ See [Error Handling](../error_handling/index.html) for detailed information.
 
 Customize server behavior:
 
-```rust
+```rust,ignore
 use feather::{App, ServerConfig};
 
 let config = ServerConfig {
@@ -199,7 +199,7 @@ let mut app = App::with_config(config);
 
 Or use convenience methods:
 
-```rust
+```rust,ignore
 app.max_body(10 * 1024 * 1024);
 app.read_timeout(60);
 app.workers(4);

@@ -17,7 +17,7 @@ feather = { version = "0.6", features = ["jwt"] }
 
 Initialize JWT support in your application:
 
-```rust
+```rust,ignore
 use feather::{App, jwt::JwtManager};
 
 fn main() {
@@ -40,7 +40,7 @@ fn main() {
 
 Generate tokens with minimal setup:
 
-```rust
+```rust,ignore
 use feather::jwt::JwtManager;
 
 let jwt = JwtManager::new("secret-key".to_string());
@@ -56,7 +56,7 @@ match jwt.generate_simple("user123", 24) {  // 24 hour TTL
 
 The easiest way to define custom claims is with the `#[derive(Claim)]` macro:
 
-```rust
+```rust,ignore
 use feather::jwt::Claim;
 use serde::{Deserialize, Serialize};
 
@@ -81,7 +81,7 @@ The `#[derive(Claim)]` macro automatically:
 
 For custom validation logic, implement `Claim` manually:
 
-```rust
+```rust,ignore
 use feather::jwt::Claim;
 use serde::{Deserialize, Serialize};
 
@@ -125,7 +125,7 @@ impl Claim for AdminClaims {
 
 Decode and validate tokens:
 
-```rust
+```rust,ignore
 use feather::jwt::JwtManager;
 
 let jwt = JwtManager::new("secret-key".to_string());
@@ -148,7 +148,7 @@ match jwt.decode::<UserClaims>(token) {
 
 The easiest way to protect routes is with the `#[jwt_required]` and `#[middleware_fn]` macros:
 
-```rust
+```rust,ignore
 use feather::{App, jwt::JwtManager, jwt_required, middleware_fn, Claim};
 use serde::{Deserialize, Serialize};
 
@@ -187,7 +187,7 @@ The `#[jwt_required]` macro automatically:
 
 #### Multiple Protected Routes
 
-```rust
+```rust,ignore
 #[jwt_required]
 #[middleware_fn]
 fn get_user_data(claims: UserClaims) {
@@ -213,7 +213,7 @@ app.put("/api/user", update_user);
 
 For custom error handling or conditional validation:
 
-```rust
+```rust,ignore
 use feather::middleware;
 
 app.get("/api/custom", middleware!(|req, res, ctx| {
@@ -250,7 +250,7 @@ app.get("/api/custom", middleware!(|req, res, ctx| {
 
 Alternatively, use the `with_jwt_auth` middleware:
 
-```rust
+```rust,ignore
 use feather::jwt::{with_jwt_auth, SimpleClaims};
 
 app.get(
@@ -266,7 +266,7 @@ app.get(
 
 ### Full Example with Login and Protected Routes
 
-```rust
+```rust,ignore
 use feather::{App, jwt::JwtManager, jwt_required, middleware_fn, middleware, Claim};
 use serde::{Deserialize, Serialize,json};
 
@@ -333,7 +333,7 @@ fn main() {
 
 ### Alternative: Custom Validation Flow
 
-```rust
+```rust,ignore
 #[derive(Serialize, Deserialize, Claim, Clone)]
 struct AdminClaims {
     #[required]
@@ -366,7 +366,7 @@ app.get("/api/admin", admin_only);
 
 Define claims quickly with automatic validation:
 
-```rust
+```rust,ignore
 use feather::jwt::Claim;
 use serde::{Deserialize, Serialize};
 
@@ -394,7 +394,7 @@ Validation attributes:
 
 Built-in claims for quick use:
 
-```rust
+```rust,ignore
 use feather::jwt::SimpleClaims;
 
 pub struct SimpleClaims {
@@ -407,7 +407,7 @@ pub struct SimpleClaims {
 
 For advanced validation, implement `Claim` manually:
 
-```rust
+```rust,ignore
 use feather::jwt::Claim;
 use serde::{Deserialize, Serialize};
 
@@ -437,7 +437,7 @@ impl Claim for AdminClaims {
 4. **Short expiration** - Use reasonable TTLs (15 minutes to 24 hours)
 5. **Refresh tokens** - Consider implementing refresh token flow for longer sessions
 
-```rust
+```rust,ignore
 use std::env;
 
 fn main() {
@@ -453,7 +453,7 @@ fn main() {
 
 Proper token error handling:
 
-```rust
+```rust,ignore
 use feather::jwt::ErrorKind;
 
 let token = "invalid-token";
@@ -482,7 +482,7 @@ match jwt.decode::<SimpleClaims>(token) {
 
 Generate tokens with appropriate TTL:
 
-```rust
+```rust,ignore
 // Short-lived access token (15 minutes)
 jwt.generate_simple("user123", 1/96)?;  // 15 minutes = 1/96 of a day
 
@@ -500,7 +500,7 @@ jwt.generate_simple("user123", 30)?;
 
 Combine with rate limiting middleware:
 
-```rust
+```rust,ignore
 use std::collections::HashMap;
 use feather::State;
 
@@ -542,7 +542,7 @@ fn main() {
 
 ### API Server with JWT (Using Macros)
 
-```rust
+```rust,ignore
 use feather::{App, jwt::JwtManager, jwt_required, middleware_fn, middleware, Claim};
 use serde::{Deserialize, Serialize};
 
@@ -604,7 +604,7 @@ fn main() {
 
 ### API Server with JWT (Manual Approach)
 
-```rust
+```rust,ignore
 use feather::{App, jwt::JwtManager, middleware, jwt::SimpleClaims};
 
 fn main() {

@@ -29,6 +29,7 @@ use std::{
 /// let mut app = App::new();
 /// app.use_middleware(Logger);
 /// ```
+#[cfg(feature = "log")]
 pub struct Logger;
 
 impl Middleware for Logger {
@@ -90,7 +91,7 @@ impl Middleware for Cors {
 ///
 /// This middleware serves static files (HTML, CSS, JavaScript, images, etc.) from
 /// a specified directory. It automatically detects content types based on file extensions.
-///
+/// returns HTTP errors for invalid paths.
 /// # Security
 ///
 /// - Path traversal attacks are prevented (.. is not allowed)
@@ -105,6 +106,7 @@ impl Middleware for Cors {
 /// let mut app = App::new();
 /// app.use_middleware(ServeStatic::new("./public".to_string()));
 /// ```
+//TODO FIX WIN ERRORS
 pub struct ServeStatic(String);
 
 impl ServeStatic {
@@ -114,9 +116,6 @@ impl ServeStatic {
     ///
     /// * `directory` - Path to the directory containing static files
     ///
-    /// # Panics
-    ///
-    /// Does not panic on creation, but returns HTTP errors for invalid paths.
     ///
     /// # Example
     ///

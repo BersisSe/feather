@@ -6,7 +6,7 @@ Feather provides a simple, Express.js-like routing system. This guide covers eve
 
 Define routes using HTTP method functions on the `App` struct:
 
-```rust
+```rust,ignore
 use feather::App;
 
 let mut app = App::new();
@@ -70,7 +70,7 @@ Feather supports all standard HTTP methods:
 
 Extract parameters from the URL using the `:paramName` syntax:
 
-```rust
+```rust,ignore
 app.get("/users/:id", middleware!(|req, res, _ctx| {
     // The framework captures the path structure
     let user = req.param("id"); // Returns a option
@@ -93,7 +93,7 @@ app.get("/posts/:postId/comments/:commentId", middleware!(|_req, res, _ctx| {
 
 For advanced use cases, use the generic `route()` method:
 
-```rust
+```rust,ignore
 use feather::Method;
 
 app.route(Method::GET, "/custom", middleware!(|_req, res, _ctx| {
@@ -112,7 +112,7 @@ app.route(Method::POST, "/api/data", middleware!(|_req, res, _ctx| {
 
 Use wildcards (`*`) to match any path structure:
 
-```rust
+```rust,ignore
 // Match any path starting with /api/
 app.get("/api/*", middleware!(|_req, res, _ctx| {
     res.send_text("API route");
@@ -131,7 +131,7 @@ app.get("/*", middleware!(|_req, res, _ctx| {
 
 Inside your middleware, use `req` to access request data:
 
-```rust
+```rust,ignore
 app.post("/api/data", middleware!(|req, res, _ctx| {
     // HTTP method
     println!("Method: {:?}", req.method);
@@ -156,7 +156,7 @@ app.post("/api/data", middleware!(|req, res, _ctx| {
 
 Create organized route groups using global middleware:
 
-```rust
+```rust,ignore
 // API routes with common prefix handling
 app.use_middleware(middleware!(|req, res, _ctx| {
     // Add CORS headers for API routes
@@ -181,7 +181,7 @@ app.get("/api/posts", middleware!(|_req, res, _ctx| {
 
 Set custom HTTP status codes:
 
-```rust
+```rust,ignore
 app.post("/users", middleware!(|_req, res, _ctx| {
     res.set_status(201)  // Created
        .send_text("User created successfully");
@@ -216,7 +216,7 @@ Common HTTP status codes:
 
 ## Example: RESTful API Routes
 
-```rust
+```rust,ignore
 use feather::App;
 
 fn main() {

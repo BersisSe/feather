@@ -143,6 +143,7 @@ pub use feather_runtime::http::{Request, Response};
 pub use internals::{App, AppContext};
 pub use crate::internals::State;
 pub use feather_runtime::runtime::server::ServerConfig;
+pub use crate::middlewares::builtins;
 
 pub mod prelude {
     pub use crate::next;
@@ -169,7 +170,22 @@ macro_rules! next {
         Ok($crate::middlewares::MiddlewareResult::Next)
     };
 }
-
+/// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::NextRoute)`
+/// syntax just to clear some Boilerplate
+#[macro_export]
+macro_rules! next_route {
+    () => {
+        Ok($crate::middlewares::MiddlewareResult::NextRoute)
+    };
+}
+/// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::End)`
+/// syntax just to clear some Boilerplate
+#[macro_export]
+macro_rules! end {
+    () => {
+        Ok($crate::middlewares::MiddlewareResult::End)
+    };
+}
 /// The `middleware!` macro allows you to define middleware functions concisely without repeating type signatures.
 ///
 /// # Usage

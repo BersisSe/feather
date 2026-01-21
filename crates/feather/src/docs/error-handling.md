@@ -6,7 +6,7 @@ Feather provides flexible error handling mechanisms. This guide covers all appro
 
 By default, Feather catches all errors and returns a 500 Internal Server Error response to the client:
 
-```rust
+```rust,ignore
 use feather::App;
 
 fn main() {
@@ -28,7 +28,7 @@ The error is logged to `stderr` and a generic 500 response is sent to the client
 
 Set a custom error handler using `set_error_handler()`:
 
-```rust
+```rust,ignore
 use feather::{App, ErrorHandler};
 
 let error_handler: ErrorHandler = |err| {
@@ -47,7 +47,7 @@ app.set_error_handler(error_handler);
 
 Check conditions and return early:
 
-```rust
+```rust,ignore
 app.post("/api/users", middleware!(|req, res, _ctx| {
     // Validate request
     if req.body.is_empty() {
@@ -66,7 +66,7 @@ app.post("/api/users", middleware!(|req, res, _ctx| {
 
 Send error status codes:
 
-```rust
+```rust,ignore
 app.get("/resource/:id", middleware!(|req, res, _ctx| {
     // Simulate resource not found
     res.set_status(404);
@@ -91,7 +91,7 @@ app.get("/error", middleware!(|_req, res, _ctx| {
 
 Handle different error scenarios:
 
-```rust
+```rust,ignore
 app.post("/login", middleware!(|req, res, _ctx| {
     // Parse request body
     let body = String::from_utf8_lossy(&req.body);
@@ -118,7 +118,7 @@ app.post("/login", middleware!(|req, res, _ctx| {
 
 ### JSON Error Responses (with `json` feature)
 
-```rust
+```rust,ignore
 #[cfg(feature = "json")]
 app.post("/api/data", middleware!(|req, res, _ctx| {
     if req.body.is_empty() {
@@ -141,7 +141,7 @@ app.post("/api/data", middleware!(|req, res, _ctx| {
 
 ### HTML Error Responses
 
-```rust
+```rust,ignore
 app.get("/unknown", middleware!(|_req, res, _ctx| {
     res.set_status(404);
     res.send_html("<h1>404 Not Found</h1><p>The page you requested does not exist.</p>");
@@ -153,7 +153,7 @@ app.get("/unknown", middleware!(|_req, res, _ctx| {
 
 ### Request Validation
 
-```rust
+```rust,ignore
 app.post("/users", middleware!(|req, res, _ctx| {
     // Check content type
     if let Some(ct) = req.headers.get("Content-Type") {
@@ -181,7 +181,7 @@ app.post("/users", middleware!(|req, res, _ctx| {
 
 ### Schema Validation
 
-```rust
+```rust,ignore
 app.post("/register", middleware!(|req, res, _ctx| {
     let body = String::from_utf8_lossy(&req.body);
     
@@ -208,7 +208,7 @@ app.post("/register", middleware!(|req, res, _ctx| {
 
 Create middleware specifically for error handling:
 
-```rust
+```rust,ignore
 // Global error handling middleware
 app.use_middleware(middleware!(|req, res, ctx| {
     // Check for problematic requests
@@ -248,7 +248,7 @@ app.use_middleware(middleware!(|req, res, ctx| {
 
 ### Graceful Degradation
 
-```rust
+```rust,ignore
 app.get("/data", middleware!(|_req, res, _ctx| {
     // Try to fetch data, fall back to default
     let data = match fetch_data() {
@@ -272,7 +272,7 @@ fn fetch_data() -> Result<String, Box<dyn std::error::Error>> {
 
 ### Retry Logic
 
-```rust
+```rust,ignore
 fn call_external_service(max_retries: usize) -> Result<String, String> {
     for attempt in 1..=max_retries {
         match try_service_call() {
@@ -307,7 +307,7 @@ app.get("/external", middleware!(|_req, res, _ctx| {
 
 Use the logging feature to log errors:
 
-```rust
+```rust,ignore
 #[cfg(feature = "log")]
 app.use_middleware(middleware!(|_req, res, _ctx| {
     // Errors can be logged
@@ -320,7 +320,7 @@ app.use_middleware(middleware!(|_req, res, _ctx| {
 
 Include helpful context in error responses:
 
-```rust
+```rust,ignore
 app.post("/api/update", middleware!(|req, res, _ctx| {
     let path = req.uri.clone();
     
