@@ -10,8 +10,8 @@
 
 ## Why Feather?
 
-- **Middleware-First Architecture**  
-  Everything is a middleware—even if it's not, it produces a middleware in the end.  
+- **Simplicity over Complexity**
+  Feather chooses on simple, easy to use APIs over complex and hard-to-learn abstractions.
   
 - **Easy State Management Using Context**  
   The Context API makes it very easy to manage state without the use of Extractors/Macros.  
