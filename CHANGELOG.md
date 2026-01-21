@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [Unreleased] 
+### Fixed
+- Cargo Test trying to test `guides` module
+
+### Added
+- New syntatic sugar macros, `end!` & `next_route!` 
+- Added New MiddlewareResult variant `End`
+
 ## [0.7.0] - 2025-07-08
 
 ### Overview
