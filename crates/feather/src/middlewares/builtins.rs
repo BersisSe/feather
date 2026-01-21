@@ -31,7 +31,7 @@ use std::{
 /// ```
 #[cfg(feature = "log")]
 pub struct Logger;
-
+#[cfg(feature = "log")]
 impl Middleware for Logger {
     fn handle(&self, _request: &mut Request, _: &mut Response, _: &AppContext) -> Outcome {
         #[cfg(feature = "log")]

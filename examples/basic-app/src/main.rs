@@ -1,17 +1,23 @@
-use feather::{App, AppContext, Outcome, Request, Response, middleware_fn, next};
-use std::fs;
-/// adada
+// Import dependencies from Feather
+use feather::middleware;
+use feather::middlewares::builtins;
+use feather::{App, next};
+
+// Main function
 fn main() {
+    // Create a new instance of App
     let mut app = App::new();
-    app.get("/", api_route);
-    let a = 5;
-    
-}
+    // Define a route for the root path
+    app.get(
+        "/",
+        middleware!(|_request, response, _ctx| {
+            response.send_text("Hello, world!");
+            next!()
+        }),
+    );
 
-
-#[middleware_fn]
-fn api_route(){
-    let f = fs::File::open("a.txt");
-    
-    next!()
+    // Use the Logger middleware for all routes
+    app.use_middleware(builtins::Logger);
+    // Listen on port 5050
+    app.listen("127.0.0.1:5050");
 }
