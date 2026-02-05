@@ -3,7 +3,9 @@ use feather_runtime::http::{Request, Response};
 use feather_runtime::runtime::service::{Service, ServiceResult};
 use may::net::TcpStream;
 use std::io;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
+pub const ADDR: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 0000);
 /// A simple echo service for testing
 pub struct EchoService;
 
@@ -29,13 +31,8 @@ pub fn create_test_request(method: &str, path: &str, body: &[u8]) -> Vec<u8> {
     request
 }
 
-
 pub fn split_request(buf: &[u8]) -> (&[u8], Bytes) {
-    let header_end = buf
-        .windows(4)
-        .position(|w| w == b"\r\n\r\n")
-        .map(|p| p + 4)
-        .unwrap_or(buf.len());
+    let header_end = buf.windows(4).position(|w| w == b"\r\n\r\n").map(|p| p + 4).unwrap_or(buf.len());
 
     let headers = &buf[..header_end];
     let body = Bytes::copy_from_slice(&buf[header_end..]);

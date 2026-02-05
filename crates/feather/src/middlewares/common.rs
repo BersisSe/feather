@@ -107,7 +107,7 @@ where
         match a.handle(request, response, ctx) {
             Ok(MiddlewareResult::Next) => b.handle(request, response, ctx),
             Ok(MiddlewareResult::NextRoute) => Ok(MiddlewareResult::NextRoute),
-            Ok(MiddlewareResult::End) => Ok(MiddlewareResult::End), 
+            Ok(MiddlewareResult::End) => Ok(MiddlewareResult::End),
             Err(e) => Err(e),
         }
     }

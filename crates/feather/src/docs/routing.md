@@ -1,5 +1,4 @@
 # Routing in Feather
-
 Feather provides a simple, Express.js-like routing system. This guide covers everything you need to know about routing.
 
 ## Basic Routing
@@ -52,6 +51,31 @@ app.options("/api/*", middleware!(|_req, res, _ctx| {
     res.send_text("OPTIONS allowed");
     next!()
 }));
+```
+## Route Grouping via Routers
+While you can define all routes on the App struct, as of Feather 0.8.0, we recommend using the Router for better organization.
+This allows you to group related routes and apply middleware that only affects that specific group.
+```rust,ignore
+use feather::Router;
+
+pub fn api_v1() -> Router {
+    let mut router = Router::new();
+
+    // This middleware only runs for routes in this router
+    router.use_middleware(|_req, _res, _ctx| {
+        println!("API v1 access");
+        next!()
+    });
+
+    router.get("/status", |_req, res, _ctx| {
+        res.finish_json(feather::json!({ "status": "ok" }))
+    });
+
+    router
+}
+
+// In your main.rs
+app.mount("/api/v1", api_v1());
 ```
 
 ## Supported HTTP Methods
@@ -152,30 +176,6 @@ app.post("/api/data", middleware!(|req, res, _ctx| {
 }));
 ```
 
-## Route Groups
-
-Create organized route groups using global middleware:
-
-```rust,ignore
-// API routes with common prefix handling
-app.use_middleware(middleware!(|req, res, _ctx| {
-    // Add CORS headers for API routes
-    if req.uri.starts_with("/api") {
-        res.headers.append("Access-Control-Allow-Origin", "*".parse().unwrap());
-    }
-    next!()
-}));
-
-app.get("/api/users", middleware!(|_req, res, _ctx| {
-    res.send_text("Users list");
-    next!()
-}));
-
-app.get("/api/posts", middleware!(|_req, res, _ctx| {
-    res.send_text("Posts list");
-    next!()
-}));
-```
 
 ## Status Codes and Responses
 
@@ -214,45 +214,32 @@ Common HTTP status codes:
 - **404** - Not Found
 - **500** - Internal Server Error
 
-## Example: RESTful API Routes
-
+## Final Example: Modern RESTful API Router
+Here is a Composable and Modular RESTful API Router in feather
 ```rust,ignore
-use feather::App;
+use feather::Router;
 
-fn main() {
-    let mut app = App::new();
+pub fn item_router() -> Router {
+    let mut router = Router::new();
     
-    // List all items
-    app.get("/items", middleware!(|_req, res, _ctx| {
-        res.send_text("[{id: 1, name: 'Item 1'}]");
-        next!()
-    }));
+    // GET /items
+    router.get("/", |_req, res, _ctx| {
+        res.finish_json(feather::json!([{ "id": 1, "name": "Item 1" }]))
+    });
     
-    // Get single item
-    app.get("/items/:id", middleware!(|_req, res, _ctx| {
-        res.send_text("{id: 1, name: 'Item 1'}");
-        next!()
-    }));
+    // POST /items
+    router.post("/", |_req, res, _ctx| {
+        res.set_status(201).finish_json(feather::json!({ "id": 2, "name": "Item 2" }))
+    });
     
-    // Create item
-    app.post("/items", middleware!(|_req, res, _ctx| {
-        res.set_status(201);
-        res.send_text("{id: 2, name: 'Item 2'}");
-        next!()
-    }));
+    // DELETE /items/:id
+    router.delete("/:id", |_req, res, _ctx| {
+        res.set_status(204).end()
+    });
     
-    // Update item
-    app.put("/items/:id", middleware!(|_req, res, _ctx| {
-        res.send_text("{id: 1, name: 'Updated Item'}");
-        next!()
-    }));
-    
-    // Delete item
-    app.delete("/items/:id", middleware!(|_req, res, _ctx| {
-        res.set_status(204);
-        next!()
-    }));
-    
-    app.listen("127.0.0.1:5050");
+    router
 }
+
+// in the main function just.
+app.mount("/api",item_router())
 ```

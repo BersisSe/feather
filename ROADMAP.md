@@ -13,5 +13,8 @@ This document outlines the planned features and improvements for the Feather fra
 - Add Templating for Server-Side Rendering
 - Develop a Event/Hook System
 - Develop a Plugin/Extension System
+- Chunked Request and Responses
+- Form Helpers
+- A Better Ecosystem of Middlewares
 
 

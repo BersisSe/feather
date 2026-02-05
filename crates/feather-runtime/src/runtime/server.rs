@@ -143,11 +143,11 @@ impl Server {
     fn conn_handler(mut stream: TcpStream, service: ArcService, config: ServerConfig) -> io::Result<()> {
         let mut keep_alive = true;
         let mut pipeline_buffer: Vec<u8> = Vec::new();
-
+        let remote_addr = stream.local_addr()?;
         while keep_alive {
             stream.set_read_timeout(Some(std::time::Duration::from_secs(config.read_timeout_secs)))?;
 
-            let mut body = pipeline_buffer;
+            let body = pipeline_buffer;
             pipeline_buffer = Vec::new();
             /* =========================
              * 1. READ HEADERS
@@ -185,7 +185,7 @@ impl Server {
             /* =========================
              * 2. PARSE HEADERS ONLY
              * ========================= */
-            let temp_request = match Request::parse(headers_raw, Bytes::new()) {
+            let temp_request = match Request::parse(headers_raw, Bytes::new(), remote_addr) {
                 Ok(r) => r,
                 Err(e) => {
                     Self::send_error(&mut stream, StatusCode::BAD_REQUEST, &format!("Invalid request: {}", e))?;
@@ -242,7 +242,7 @@ impl Server {
             /* =========================
              * 6. BUILD FINAL REQUEST
              * ========================= */
-            let request = match Request::parse(headers_raw, Bytes::from(body)) {
+            let request = match Request::parse(headers_raw, Bytes::from(body), remote_addr) {
                 Ok(r) => r,
                 Err(e) => {
                     Self::send_error(&mut stream, StatusCode::BAD_REQUEST, &format!("Invalid request: {}", e))?;

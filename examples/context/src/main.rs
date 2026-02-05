@@ -52,12 +52,12 @@ fn login() -> Outcome {
     let db = ctx.get_state::<Pool<SqliteConnectionManager>>();
     let conn = db.get().unwrap(); // Keep connection alive
     match conn.execute("INSERT INTO person (name) VALUES (?1)", [username]) {
-        Ok(rows_changed) => res.set_status(200).send_json(json!({
+        Ok(rows_changed) => res.set_status(200).send_json(&json!({
             "success": true,
             "rows_changed": rows_changed
         })),
         Err(e) => {
-            res.set_status(500).send_json(json!({"success": false}));
+            res.set_status(500).send_json(&json!({"success": false}));
             warn!("{e}")
         }
     };
@@ -70,6 +70,6 @@ fn get_user() -> Outcome {
     let conn = db.get().unwrap(); // Keep connection alive
     let mut stmt = conn.prepare("SELECT name FROM person")?;
     let users = stmt.query_map([], |row| row.get::<_, String>(0))?.filter_map(Result::ok).collect::<Vec<_>>();
-    res.set_status(200).send_json(json!({ "users": users }));
+    res.set_status(200).send_json(&json!({ "users": users }));
     next!()
 }

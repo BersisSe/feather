@@ -1,10 +1,10 @@
 use std::io::{Cursor, Read};
+
 use std::thread;
 mod common;
 
-use common::{EchoService, create_test_request,split_request};
+use common::{ADDR, EchoService, create_test_request, split_request};
 use feather_runtime::runtime::service::Service;
-
 
 #[test]
 fn test_conn_sim_single_request_with_cursor() {
@@ -17,7 +17,7 @@ fn test_conn_sim_single_request_with_cursor() {
     in_cursor.read_to_end(&mut buf).unwrap();
     let (headers, body) = split_request(&buf);
     // Parse request from buffer
-    let req = feather_runtime::http::Request::parse(headers,body).unwrap();
+    let req = feather_runtime::http::Request::parse(headers, body, ADDR).unwrap();
 
     // Dispatch to service
     let service = EchoService;
@@ -44,7 +44,7 @@ fn test_conn_sim_concurrent_cursors() {
             let mut buf = Vec::new();
             in_cursor.read_to_end(&mut buf).unwrap();
             let (headers, body_bytes) = split_request(&buf);
-            let req = feather_runtime::http::Request::parse(headers,body_bytes).unwrap();
+            let req = feather_runtime::http::Request::parse(headers, body_bytes, ADDR).unwrap();
             let service = EchoService;
             let res = service.handle(req, None).unwrap();
             if let feather_runtime::runtime::service::ServiceResult::Response(response) = res {

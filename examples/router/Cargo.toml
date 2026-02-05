@@ -1,8 +1,8 @@
 [package]
-name = "app"
+name = "router"
 version = "0.0.0"
 edition = "2024"
 publish = false
 
 [dependencies]
-feather = { workspace = true , features = ["log"]}
+feather = { workspace = true , features = ["json"]}

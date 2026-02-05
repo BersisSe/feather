@@ -9,8 +9,21 @@ The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0
 - Request Body handling bug happened while receiving large boddies
 
 ### Added
-- New syntatic sugar macros, `end!` & `next_route!` 
-- Added New MiddlewareResult variant `End`
+- New syntatic sugar macros, `end!` & `next_route!`. 
+- Added New MiddlewareResult variant `End`.  
+- New `remote_addr` method in the `Request`.  
+- New `Finalizer` trait that extends the `Request` giving it:
+  - `finish_text`
+  - `finish_html`
+  - `finish_bytes`
+  - `finish_json`
+  - All Returning a `end!` after populating Request. Kinda like how Express.js uses `.send`
+
+### Changed
+- Better Doc Comments for : `end!, next!, next_route!` macros.
+- Changed the behavior of `next_route!`. Read the Doc Comment for more info!
+- Changed the Middleware and Route pools to use Arc instead of Box. 
+- **[BREAKING]** Changed the signature of `send_json`. it now gets a referance to the serilizeable object instead of full ownership.
 
 ## [0.7.0] - 2025-07-08
 

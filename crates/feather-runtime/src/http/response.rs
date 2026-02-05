@@ -142,7 +142,7 @@ impl Response {
 
     /// Takes a Serializeable object and sends it as json.
     #[cfg(feature = "json")]
-    pub fn send_json<T: Serialize>(&mut self, data: T) {
+    pub fn send_json<T: Serialize>(&mut self, data: &T) {
         match serde_json::to_string(&data) {
             Ok(json) => {
                 self.body = Some(Bytes::from(json));
@@ -159,6 +159,7 @@ impl Response {
             }
         }
     }
+
     /// Take a [File] Struct and sends it as a file.
     /// File size is limited to 4MB. For larger files, chunked transfer\[WIP] is recommended.
     pub fn send_file(&mut self, mut file: File) {

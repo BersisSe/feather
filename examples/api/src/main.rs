@@ -8,7 +8,7 @@ use feather::{App, info, json, middleware, middleware_fn, next};
 fn main() {
     // Lets Create a App instance named api
     let mut api = App::new();
-    
+
     // Register the get_handler function for the "/" path
     api.get("/", get_handler);
 
@@ -26,7 +26,7 @@ fn main() {
                 Some(username) => {
                     // If the username is present, send a 200 OK response with the username
                     info!("Username: {}", username);
-                    res.set_status(200).send_json(json!({
+                    res.set_status(200).send_json(&json!({
                         "message": "Login successful",
                         "username": username
                     }));
@@ -34,7 +34,7 @@ fn main() {
                 }
                 None => {
                     // If the username is not present, send a 400 Bad Request response
-                    res.set_status(400).send_json(json!({
+                    res.set_status(400).send_json(&json!({
                         "error": "Username is required"
                     }));
                     return next!();
@@ -51,7 +51,6 @@ fn main() {
 // This function will be called when a GET request is made to the "/"
 #[middleware_fn]
 fn get_handler() {
-    
     res.send_html("<h1>Hello I am an Feather Api</h1>");
     next!()
 }

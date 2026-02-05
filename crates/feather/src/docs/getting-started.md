@@ -8,7 +8,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "0.6"
+feather = "0.8"
 ```
 
 ## Creating Your First App
@@ -86,11 +86,11 @@ middleware!(|req, res, ctx| {
 2. **`res: &mut Response`** - The HTTP response object to send back to the client
 3. **`ctx: &AppContext`** - Application context for accessing shared state
 
-### Return Value
+### Control Flow
 
-The middleware returns an `Outcome` (which is a `Result`):
-- `Ok(MiddlewareResult::Next)` - Continue to next middleware (via `next!()`)
-- `Ok(MiddlewareResult::NextRoute)` - Skip to next route
+- **`next!()`** - Continues to the next middleware in the chain.
+- **`next_route!()`** - New in v0.8.0, this allows you to skip the current route entirely if a condition isn't met (useful for logic-based routing).
+- **`end!()`** - New in v0.8.0 Stops all execution and sends the response immediately.
 
 ## Responding to Requests
 
@@ -144,6 +144,17 @@ app.post("/data", middleware!(|req, res, _ctx| {
     next!()
 }));
 ```
+## Using Finalizer
+As of Feather 0.8.0, `Finalizer` methods might feel closer to `Express.js` or other similiar frameworks.  
+These methods automatically call end!() for you, keeping your code clean.
+
+Every method that is explained above are implemented(except send_file). You just need to import `Finalizer` trait then you can use the 
+- `finalize_text`
+- `finalize_html`
+- `finalize_bytes`
+- `finalize_json`(with `json` feature)
+
+These are drop in replacements for their `send` counterparts
 
 ## Application Context
 
@@ -173,6 +184,21 @@ app.get("/", middleware!(|_req, res, _ctx| {
     next!()
 }));
 ```
+
+## Modularity with Routers
+The biggest addition as of Feather v0.8.0 is the `Router`. If your main.rs is getting too crowded, you can now group routes into modules:
+```rust,ignore
+// Inside a module or separate file
+pub fn user_routes() -> Router {
+    let mut router = Router::new();
+    router.get("/profile", handle_profile);
+    router
+}
+
+// In main.rs
+app.mount("/api/v1", user_routes());
+```
+If you wanna dive deeper head over to [Routing](../routing/index.html) guide.
 
 ## Error Handling
 

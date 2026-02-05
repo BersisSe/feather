@@ -1,6 +1,6 @@
 # Middlewares in Feather
-
-Middlewares are the core of Feather's request processing pipeline. This guide covers everything you need to know about creating and using middlewares.
+Middlewares are the core of Feather's request processing pipeline.
+This guide covers everything you need to know about creating and using middlewares.
 
 ## What is a Middleware?
 
@@ -20,34 +20,58 @@ pub trait Middleware: Send + Sync {
     fn handle(&self, request: &mut Request, response: &mut Response, ctx: &AppContext) -> Outcome;
 }
 ```
+A middleware can:
 
-Where `Outcome` is:
+- Inspect: Read headers, cookies, or bodies.
+- Mutate: Add headers to the response or modify the request context.
+- Intercept: Stop the request early (e.g., for Auth failures).
+- Delegate: Pass the baton to the next handler in line.
+
+But What is `Outcome`:
+Outcome is a type definition around Result, allowing you to use the try operator (?) inside your logic for clean error propagation.
 ```rust,ignore
 pub enum MiddlewareResult {
     Next,           // Continue to next middleware
     NextRoute,      // Skip to next route handler
+    End,            // Stop Executing and Send the Request.
 }
 pub type Outcome = Result<MiddlewareResult, Box<dyn Error>>;
 ```
 
+
 ## Defining Middlewares
 
-### Using the `middleware!` Macro
+### The `#[middleware_fn]` Attribute (Recommended)
 
-The simplest way to define middleware is with the `middleware!` macro:
+This is the cleanest way to write reusable logic. **As of Feather 0.8.0**, this macro is optimized to play perfectly with our new internal routing engine.
 
 ```rust,ignore
-use feather::{middleware, next};
+use feather::middleware_fn;
 
-app.get("/", middleware!(|req, res, ctx| {
-    // Your middleware logic here
-    next!()  // Continue to next middleware
-}));
+#[middleware_fn]
+fn log_requests() {
+    println!("[{}] {}", req.method, req.uri);
+    next!() // Essential to move the chain forward!
+}
+
+app.use_middleware(log_requests);
+
 ```
 
+### The `middleware!` Macro
+
+Great for quick, inline logic where you don't want to define a standalone function.
+
+```rust,ignore
+app.get("/", middleware!(|_req, res, _ctx| {
+    res.send_text("Quick response");
+    next!()
+}));
+
+```
 ### Using Closures
 
-You can use closures directly (they implement `Middleware`):
+You can use closures directly as they implement `Middleware` trait automaticly:
 
 ```rust,ignore
 let my_middleware = |req: &mut Request, res: &mut Response, ctx: &AppContext| {
@@ -57,83 +81,7 @@ let my_middleware = |req: &mut Request, res: &mut Response, ctx: &AppContext| {
 
 app.use_middleware(my_middleware);
 ```
-
-### Using the `#[middleware_fn]` Attribute Macro
-
-For reusable, named middleware functions, use the `#[middleware_fn]` attribute macro. This eliminates boilerplate by automatically injecting `req`, `res`, and `ctx` parameters:
-
-```rust,ignore
-use feather::middleware_fn;
-
-#[middleware_fn]
-fn log_requests() {
-    println!("[{}] {}", req.method, req.uri);
-    next!()
-}
-
-app.use_middleware(log_requests);
-```
-
-The macro automatically provides:
-- `req: &mut Request` - The HTTP request
-- `res: &mut Response` - The HTTP response
-- `ctx: &AppContext` - Application context for accessing state
-
-#### Why Use `#[middleware_fn]`?
-
-- **Less boilerplate** - No need to repeat type signatures
-- **More readable** - Focus on logic, not types
-- **Reusable** - Define once, use on multiple routes
-- **Clear intent** - Middleware functions are explicitly named
-
-#### Comparison: `middleware!` vs `#[middleware_fn]`
-
-```rust,ignore
-// Use middleware! for inline, one-off middleware
-app.get("/", middleware!(|_req, res, _ctx| {
-    res.send_text("Hello");
-    next!()
-}));
-
-// Use #[middleware_fn] for reusable middleware
-#[middleware_fn]
-fn greet() {
-    res.send_text("Hello");
-    next!()
-}
-
-app.use_middleware(greet);
-app.get("/hello", greet);
-app.post("/hi", greet);
-```
-
-#### Full Example with State Access
-
-```rust,ignore
-use feather::{middleware_fn, State};
-
-#[derive(Clone)]
-struct AppConfig {
-    version: String,
-}
-
-#[middleware_fn]
-fn add_version_header() {
-    let config = ctx.get_state::<State<AppConfig>>();
-    let version = config.with_scope(|c| c.version.clone());
-    res.headers.insert("X-App-Version", version.parse().unwrap());
-    next!()
-}
-
-fn main() {
-    let mut app = App::new();
-    app.context().set_state(State::new(AppConfig {
-        version: "1.0.0".to_string(),
-    }));
-    
-    app.use_middleware(add_version_header);
-}
-```
+But they are not really recommended anymore.
 
 ### Using Regular Functions
 
@@ -168,33 +116,32 @@ impl Middleware for LoggingMiddleware {
 app.use_middleware(LoggingMiddleware);
 ```
 
-## Control Flow
+## Scoped Middleware (New in 0.8.0)
 
-### Continue to Next Middleware
-
-Use `next!()` to pass control to the next middleware:
+One of the most powerful features as of Feather 0.8.0 is the ability to scope middleware to a specific `Router`. Unlike global middleware which runs on *every* request, scoped middleware only fires for routes mounted under that router.
 
 ```rust,ignore
-middleware!(|req, res, ctx| {
-    println!("Before next middleware");
-    next!()  // Continue
-})
-```
+let mut api_router = Router::new();
 
-### Skip to Next Route
-
-Use `MiddlewareResult::NextRoute` to skip remaining middleware and go to the next route:
-
-```rust,ignore
-middleware!(|req, res, ctx| {
-    if !is_authenticated(req) {
-        res.set_status(401);
-        res.send_text("Unauthorized");
-        return Ok(MiddlewareResult::NextRoute);
-    }
+// This only runs for /api/* routes
+api_router.use_middleware(|_req, _res, _ctx| {
+    info!("Scoped API check...");
     next!()
-})
+});
+
+api_router.get("/data", my_handler);
+app.mount("/api", api_router);
+
 ```
+
+## Control Flow: The "Next" Pattern
+
+Control flow in Feather is explicit. You decide when the request continues or stops.
+
+* **`next!()`**: The standard way to move to the next middleware in the current stack.
+* **`next_route!()`**: **As of Feather 0.8.0**, this tells the engine to abandon the current route matching entirely and look for the next path that matches the request.
+* **`end!()`**: Stops the chain immediately. Useful if you've already sent a response and don't want any further middleware (like loggers) to execute logic.
+
 
 ## Global Middleware
 
@@ -218,30 +165,27 @@ Execution order:
 1. Global middleware (in order defined)
 2. Route-specific middleware(in order of registered)
 
-## Practical Examples
+## Practical Examples:
 
-### Authentication Middleware
+Here is a look at a real-world examoles using the modern v0.8.0 patterns:
+
+### The Auth Guard
 
 ```rust,ignore
-fn is_valid_token(token: &str) -> bool {
-    token == "secret-token"
+#[middleware_fn]
+fn auth_guard() {
+    let token = req.headers.get("Authorization");
+    
+    if let Some(t) = token {
+        if t == "valid-token" {
+            return next!(); // All good, keep going!
+        }
+    }
+
+    // Stop them right here
+    res.set_status(401).finish_text("Unauthorized")
 }
 
-app.use_middleware(middleware!(|req, res, _ctx| {
-    if req.uri.starts_with("/api/admin") {
-        if let Some(auth) = req.headers.get("Authorization") {
-            if let Ok(auth_str) = auth.to_str() {
-                if is_valid_token(auth_str) {
-                    return next!();
-                }
-            }
-        }
-        res.set_status(401);
-        res.send_text("Unauthorized");
-        return Ok(MiddlewareResult::NextRoute);
-    }
-    next!()
-}));
 ```
 
 ### Logging Middleware
@@ -317,7 +261,7 @@ app.use_middleware(middleware!(|req, res, _ctx| {
         if !is_admin(req) {
             res.set_status(403);
             res.send_text("Forbidden");
-            return Ok(MiddlewareResult::NextRoute);
+            return next_route!()
         }
     }
     next!()
@@ -465,6 +409,6 @@ See [Authentication](../authentication.md) for complete JWT setup and examples.
 ## Performance Tips
 
 1. **Keep middleware lightweight** - Heavy processing should be done in route handlers
-2. **Return early** - If a middleware can't proceed, return `NextRoute` immediately
+2. **Return early** - If a middleware can't proceed, return `next_route!` or `end!` immediately to save CPU cycles
 3. **Cache state lookups** - If you access state multiple times, cache the result
 4. **Use appropriate types** - Prefer references over clones when possible

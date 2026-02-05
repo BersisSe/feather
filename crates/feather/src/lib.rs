@@ -8,18 +8,20 @@
 //! Add to `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! feather = "0.6"
+//! feather = "0.8"
 //! ```
 //!
-//! Hello world in 5 lines:
+//! Hello world in 7 lines:
 //! ```rust,ignore
-//! use feather::{App, middleware, next};
-//! let mut app = App::new();
-//! app.get("/", middleware!(|_req, res, _ctx| {
-//!     res.send_text("Hello, Feather!");
-//!     next!()
-//! }));
-//! app.listen("127.0.0.1:5050");
+//! use feather::prelude::*
+//! fn main(){
+//!     let mut app = App::new();
+//!     app.get("/", middleware!(|_req, res, _ctx| {
+//!         res.finish_text("Hello, Feather!")
+//!     }));
+//!     app.listen("127.0.0.1:5050");
+//! }
+//!
 //! ```
 //!
 //! ## Why Feather?
@@ -78,7 +80,7 @@
 //!
 //! Don't see something you need? Check out the GitHub repository for issues, feature requests, and contribution guidelines.
 //! Don't hesitate to open an issue or submit a pull request!
-//! 
+//!
 //! ---
 
 // --- IMPORTS START ---
@@ -138,23 +140,23 @@ pub use log::{info, trace, warn};
 
 use std::error::Error;
 
-pub use crate::middlewares::MiddlewareResult;
-pub use feather_runtime::http::{Request, Response};
-pub use internals::{App, AppContext};
 pub use crate::internals::State;
-pub use feather_runtime::runtime::server::ServerConfig;
+pub use crate::middlewares::MiddlewareResult;
 pub use crate::middlewares::builtins;
+pub use feather_runtime::http::{Request, Response};
+pub use feather_runtime::runtime::server::ServerConfig;
+pub use internals::{App, AppContext, Finalizer, Router};
 
 pub mod prelude {
-    pub use crate::next;
-    pub use crate::middleware;
-    pub use crate::middleware_fn;
     pub use crate::Outcome;
-    pub use crate::internals::{App, AppContext};
-    pub use crate::State;
     pub use crate::Request;
     pub use crate::Response;
     pub use crate::ServerConfig;
+    pub use crate::State;
+    pub use crate::internals::{App, AppContext, Finalizer, Router};
+    pub use crate::middleware;
+    pub use crate::middleware_fn;
+    pub use crate::next;
 }
 // --- IMPORTS END ---
 
@@ -163,7 +165,9 @@ pub mod prelude {
 pub type Outcome = Result<MiddlewareResult, Box<dyn Error>>;
 
 /// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::Next)`
-/// syntax just to clear some Boilerplate
+///
+/// **Behavior**: Continues execution to the next middleware in the current chain.
+/// If used in the last middleware of the global chain, the engine proceeds to route matching.
 #[macro_export]
 macro_rules! next {
     () => {
@@ -171,7 +175,10 @@ macro_rules! next {
     };
 }
 /// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::NextRoute)`
-/// syntax just to clear some Boilerplate
+///
+/// **Behavior**: Skips the current middleware stack or route handler.
+/// - In Global Middleware: Jumps straight to the Routing phase.
+/// - In a Route: Skips to the next matching route (useful conditional routing).
 #[macro_export]
 macro_rules! next_route {
     () => {
@@ -179,7 +186,11 @@ macro_rules! next_route {
     };
 }
 /// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::End)`
-/// syntax just to clear some Boilerplate
+///
+/// **Behavior**: Instantly halts all further processing (skipping remaining
+/// middleware and routing) and sends the current state of the `Response` to the client.<br>
+/// **Warning**: Ensure you have populated the `Response` (status, body, etc.) before
+/// calling `end!`. Otherwise it will send a empty Response with a 200 code.
 #[macro_export]
 macro_rules! end {
     () => {

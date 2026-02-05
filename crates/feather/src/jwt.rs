@@ -59,10 +59,7 @@ impl Claim for SimpleClaims {
         if self.sub.is_empty() {
             return Err(Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken));
         }
-        let now = ::std::time::SystemTime::now()
-            .duration_since(::std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as usize;
+        let now = ::std::time::SystemTime::now().duration_since(::std::time::UNIX_EPOCH).unwrap().as_secs() as usize;
         if self.exp < now {
             return Err(Error::from(jsonwebtoken::errors::ErrorKind::ExpiredSignature));
         }

@@ -1,4 +1,5 @@
 use std::io;
+use std::net::SocketAddr;
 /// Simple alias for error results in this module.
 /// We use a boxed std error to avoid depending on the removed crate error type.
 pub type Error = Box<dyn std::error::Error>;
@@ -7,7 +8,7 @@ use http::{Extensions, HeaderMap, Method, Uri, Version};
 use std::str::FromStr;
 use std::{borrow::Cow, collections::HashMap, fmt};
 use urlencoding::decode;
-
+// TODO : Add remote_addr()
 /// Contains a incoming Http Request
 #[derive(Debug)]
 pub struct Request {
@@ -24,14 +25,15 @@ pub struct Request {
     pub body: Bytes,
     /// The extensions of the request.
     pub extensions: Extensions,
-
+    /// The Address of the request
+    addr: SocketAddr,
     /// The route parameters of the request.
     params: HashMap<String, String>,
 }
 
 impl Request {
     /// Parses a Request from raw bytes if parsing fails returns a error
-    pub fn parse(headers_raw: &[u8], body: Bytes) -> Result<Request, Error> {
+    pub fn parse(headers_raw: &[u8], body: Bytes, incoming_addr: SocketAddr) -> Result<Request, Error> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut request = httparse::Request::new(&mut headers);
 
@@ -57,7 +59,7 @@ impl Request {
 
             header_map.insert(name, value);
         }
-        
+
         let extensions = Extensions::new();
         Ok(Request {
             method,
@@ -65,6 +67,7 @@ impl Request {
             version,
             headers: header_map,
             body,
+            addr: incoming_addr,
             extensions,
             params: HashMap::new(),
         })
@@ -97,6 +100,9 @@ impl Request {
     /// Returns the path of the Request
     pub fn path(&self) -> Cow<'_, str> {
         decode(self.uri.path()).unwrap()
+    }
+    pub fn remote_addr(&self) -> SocketAddr {
+        self.addr
     }
 }
 

@@ -1,13 +1,15 @@
 use super::AppContext;
 use super::error_stack::ErrorHandler;
+use super::route_methods;
+use crate::internals::Router;
 use crate::internals::service::AppService;
 use crate::middlewares::Middleware;
 pub use feather_runtime::Method;
-pub use feather_runtime::runtime::server::ServerConfig;
 use feather_runtime::runtime::server::Server;
-
+pub use feather_runtime::runtime::server::ServerConfig;
 use std::borrow::Cow;
 
+use std::sync::Arc;
 use std::{fmt::Display, net::ToSocketAddrs};
 
 /// A route in the application.
@@ -17,7 +19,7 @@ use std::{fmt::Display, net::ToSocketAddrs};
 pub struct Route {
     pub method: Method,
     pub path: Cow<'static, str>,
-    pub middleware: Box<dyn Middleware>,
+    pub middleware: Arc<dyn Middleware>,
 }
 
 /// A Feather application.
@@ -41,22 +43,10 @@ pub struct Route {
 /// ```
 pub struct App {
     routes: Vec<Route>,
-    middleware: Vec<Box<dyn Middleware>>,
+    middleware: Vec<Arc<dyn Middleware>>,
     context: AppContext,
     error_handler: Option<ErrorHandler>,
     server_config: ServerConfig,
-}
-
-macro_rules! route_methods {
-    ($($method:ident $name:ident)+) => {
-        $(
-            /// Adds a route to the application for the HTTP method.
-            #[inline]
-            pub fn $name<M: Middleware + 'static>(&mut self, path: impl Into<String>, middleware: M) {
-                self.route(Method::$method, path.into(), middleware);
-            }
-        )+
-    }
 }
 
 impl App {
@@ -122,14 +112,14 @@ impl App {
     /// # Example
     /// ```rust,ignore
     /// use feather::{App, ServerConfig};
-    /// 
+    ///
     /// let config = ServerConfig {
     ///     max_body_size: 10 * 1024 * 1024,  // 10MB
     ///     read_timeout_secs: 60,             // 60 seconds
     ///     workers: 4,                        // 4 worker threads
     ///     stack_size: 128 * 1024,            // 128KB
     /// };
-    /// 
+    ///
     /// let mut app = App::with_config(config);
     /// ```
     pub fn with_config(config: ServerConfig) -> Self {
@@ -285,8 +275,42 @@ impl App {
         self.routes.push(Route {
             method,
             path: path.into(),
-            middleware: Box::new(middleware),
+            middleware: Arc::new(middleware),
         });
+    }
+
+    /// Mount a [Router] to a specific path prefix.
+    /// All routes within the router will be prepended with this prefix.
+    /// # Example
+    /// ```rust,ignore
+    /// let mut app = App::new();
+    /// let api = Router::new();
+    ///
+    /// app.mount("/api", api)
+    /// ```
+    pub fn mount(&mut self, prefix: impl Into<String>, router: Router) {
+        let prefix = prefix.into();
+        let prefix_trimmed = prefix.trim_matches('/');
+
+        for mut route in router.routes {
+            // Join Paths here
+            let path_trimmed = route.path.trim_matches('/');
+            let new_path = if path_trimmed.is_empty() {
+                format!("/{}", prefix_trimmed)
+            } else {
+                format!("/{}/{}", prefix_trimmed, path_trimmed)
+            };
+            route.path = Cow::Owned(new_path); // Moooooooo
+
+            if !router.middleware.is_empty() {
+                route.middleware = Arc::new(super::router::ScopedMiddleware {
+                    router_stack: router.middleware.clone(),
+                    route_handler: route.middleware,
+                });
+            }
+
+            self.routes.push(route);
+        }
     }
 
     /// Add a global middleware to the application that will be applied to all routes.
@@ -303,7 +327,7 @@ impl App {
     /// ```
     #[inline]
     pub fn use_middleware(&mut self, middleware: impl Middleware + 'static) {
-        self.middleware.push(Box::new(middleware));
+        self.middleware.push(Arc::new(middleware));
     }
 
     route_methods!(

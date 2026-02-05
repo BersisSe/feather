@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use feather_runtime::http::Request;
 use feather_runtime::http::Response;
@@ -13,20 +14,20 @@ use crate::middlewares::Middleware;
 
 pub(crate) struct AppService {
     pub routes: Vec<Route>,
-    pub middleware: Vec<Box<dyn Middleware>>,
+    pub middleware: Vec<Arc<dyn Middleware>>,
     pub context: AppContext,
     pub error_handler: Option<ErrorHandler>,
 }
 
 impl AppService {
-    fn run_middleware(mut request: &mut Request, routes: &[Route], global_middleware: &[Box<dyn Middleware>], context: &AppContext, error_handler: &Option<ErrorHandler>) -> Response {
+    fn run_middleware(mut request: &mut Request, routes: &[Route], global_middleware: &[Arc<dyn Middleware>], context: &AppContext, error_handler: &Option<ErrorHandler>) -> Response {
         let mut response = Response::default();
         // Run global middleware
 
         for middleware in global_middleware {
             match middleware.handle(&mut request, &mut response, &context) {
                 Ok(crate::middlewares::MiddlewareResult::Next) => {}
-                Ok(crate::middlewares::MiddlewareResult::NextRoute) => break, 
+                Ok(crate::middlewares::MiddlewareResult::NextRoute) => break,
                 Ok(crate::middlewares::MiddlewareResult::End) => return response,
                 Err(e) => {
                     if let Some(handler) = &error_handler {
@@ -39,26 +40,31 @@ impl AppService {
                 }
             }
         }
-
-        // Run route-specific middleware with dynamic route matching
+        let method = request.method.clone();
+        // Run route-specific middleware
         let mut found = false;
-        for route in routes.iter().filter(|r| r.method == request.method) {
+        for route in routes.iter().filter(|r| r.method == method) {
             if let Some(params) = Self::match_route(&route.path, &request.path()) {
                 request.set_params(params);
                 match route.middleware.handle(request, &mut response, &context) {
-                    Ok(crate::middlewares::MiddlewareResult::End) => return response, 
-                    Ok(_) => {} 
+                    Ok(crate::middlewares::MiddlewareResult::NextRoute) => {
+                        // Skip this match and keep looking for the next matching route
+                        continue;
+                    }
+                    Ok(crate::middlewares::MiddlewareResult::End) | Ok(crate::middlewares::MiddlewareResult::Next) => {
+                        found = true;
+                        break;
+                    }
                     Err(e) => {
                         if let Some(handler) = &error_handler {
                             handler(e, &request, &mut response)
                         } else {
                             eprintln!("Unhandled Error caught in Route Middlewares : {}", e);
                             response.set_status(500).send_text("Internal Server Error");
+                            break;
                         }
                     }
                 }
-                found = true;
-                break;
             }
         }
         if !found {

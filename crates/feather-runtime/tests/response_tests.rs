@@ -1,9 +1,6 @@
 use feather_runtime::http::Response;
 use serde::Serialize;
 
-
-
-
 #[test]
 fn test_response_creation() {
     let mut response = Response::default();
@@ -49,7 +46,7 @@ fn test_json_response() {
         message: "test".to_string(),
     };
 
-    response.send_json(data);
+    response.send_json(&data);
 
     let raw = response.to_raw();
     let raw_str = String::from_utf8_lossy(&raw);
