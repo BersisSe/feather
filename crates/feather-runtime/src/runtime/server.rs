@@ -149,9 +149,7 @@ impl Server {
 
             let body = pipeline_buffer;
             pipeline_buffer = Vec::new();
-            /* =========================
-             * 1. READ HEADERS
-             * ========================= */
+            // * 1. READ HEADERS
             let mut buffer = body;
             let mut temp = [0u8; 4096];
 
@@ -159,7 +157,7 @@ impl Server {
                 let prev_len = buffer.len();
                 let n = stream.read(&mut temp)?;
                 if n == 0 {
-                    return Ok(()); // client closed connection
+                    return Ok(()); // client closed connection, return Ok().
                 }
 
                 buffer.extend_from_slice(&temp[..n]);
@@ -182,9 +180,8 @@ impl Server {
             let headers_raw = &buffer[..header_end];
             let mut body = buffer[header_end..].to_vec();
 
-            /* =========================
-             * 2. PARSE HEADERS ONLY
-             * ========================= */
+
+            // * 2. PARSE HEADERS ONLY
             let temp_request = match Request::parse(headers_raw, Bytes::new(), remote_addr) {
                 Ok(r) => r,
                 Err(e) => {
@@ -192,28 +189,22 @@ impl Server {
                     return Ok(());
                 }
             };
-            /* =========================
-             * 3. REJECT CHUNKED ENCODING
-             * ========================= */
-
+            // * 3. REJECT CHUNKED ENCODING
             if temp_request.headers.get(http::header::TRANSFER_ENCODING).map(|v| v.as_bytes().eq_ignore_ascii_case(b"chunked")).unwrap_or(false) {
                 Self::send_error(&mut stream, StatusCode::NOT_IMPLEMENTED, "Chunked transfer encoding not supported")?;
                 return Ok(());
             }
 
-            /* =========================
-             * 4. HANDLE CONNECTION HEADER
-             * ========================= */
+
+            //* 4. HANDLE CONNECTION HEADER
             keep_alive = match (temp_request.version, temp_request.headers.get(http::header::CONNECTION)) {
                 (http::Version::HTTP_11, Some(v)) if v.as_bytes().eq_ignore_ascii_case(b"close") => false,
                 (http::Version::HTTP_11, _) => true,
                 _ => false,
             };
 
-            /* =========================
-             * 5. READ BODY (Content-Length) — FIXED
-             * ========================= */
-
+  
+            //* 5. READ BODY (Content-Length) — FIXED
             let content_length = temp_request.headers.get(http::header::CONTENT_LENGTH).and_then(|v| v.to_str().ok()).and_then(|v| v.parse::<usize>().ok()).unwrap_or(0);
 
             if content_length > config.max_body_size {
@@ -239,9 +230,8 @@ impl Server {
                 pipeline_buffer = body.split_off(content_length);
             }
 
-            /* =========================
-             * 6. BUILD FINAL REQUEST
-             * ========================= */
+         
+            // * 6. BUILD FINAL REQUEST
             let request = match Request::parse(headers_raw, Bytes::from(body), remote_addr) {
                 Ok(r) => r,
                 Err(e) => {
@@ -250,9 +240,7 @@ impl Server {
                 }
             };
 
-            /* =========================
-             * 7. DISPATCH
-             * ========================= */
+            //* 7. DISPATCH RESPONSE
             let result = service.handle(request, None);
 
             match result {

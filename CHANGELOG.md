@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+### Changes
+- Strip unnecessary comments.  
+
+
+
 ## [0.8.0] - 2026-02-05
 
 ### Overview 
