@@ -3,7 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased] 
+## [0.8.0] - 2026-02-05
+
+### Overview 
+Major Update that brings a modular Routing System, More Modern Response API(Finalizers), Better flow control and Alot of Fixes. Enjoy!
+
 ### Fixed
 - Cargo Test trying to test `guides` module
 - Request Body handling bug happened while receiving large boddies
@@ -26,7 +30,7 @@ The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0
 - Changed the Middleware and Route pools to use Arc instead of Box. 
 - **[BREAKING]** Changed the signature of `send_json`. it now gets a referance to the serilizeable object instead of full ownership.
 
-## [0.7.0] - 2025-07-08
+## [0.7.0] - 2025-12-10
 
 ### Overview
 Medium Update including fully overhauled Docs(Check out [Docs.rs](https://docs.rs/feather/latest/feather/)) and Some QOL changes and new features
