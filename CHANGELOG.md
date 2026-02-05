@@ -21,8 +21,8 @@ Major Update that brings a modular Routing System, More Modern Response API(Fina
   - `finish_text`
   - `finish_html`
   - `finish_bytes`
-  - `finish_json`
-- All Returning a `end!` after populating Request. Kinda like how Express.js uses `.send`
+  - `finish_json`  
+  All Returning a `end!` after populating Request. Kinda like how Express.js uses `.send`
 
 ### Changed
 - Better Doc Comments for : `end!, next!, next_route!` macros.
