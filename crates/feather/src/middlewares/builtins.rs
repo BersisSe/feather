@@ -3,7 +3,7 @@
 //! This module provides ready-to-use middleware for logging, CORS, and static file serving.
 
 use super::common::Middleware;
-use crate::{Outcome, internals::AppContext, next};
+use crate::{Outcome, end, internals::AppContext, next};
 
 use feather_runtime::http::{Request, Response};
 #[cfg(feature = "log")]
@@ -11,7 +11,7 @@ use log::info;
 use std::{
     fs::{self, File},
     io::{self, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 /// Logs incoming HTTP requests.
@@ -35,7 +35,7 @@ pub struct Logger;
 impl Middleware for Logger {
     fn handle(&self, _request: &mut Request, _: &mut Response, _: &AppContext) -> Outcome {
         #[cfg(feature = "log")]
-        info!("{} {}", _request.method, _request.uri.path(),);
+        info!("{} {}", _request.method, _request.uri.path());
         next!()
     }
 }
@@ -107,7 +107,9 @@ impl Middleware for Cors {
 /// app.use_middleware(ServeStatic::new("./public".to_string()));
 /// ```
 //TODO FIX WIN ERRORS
-pub struct ServeStatic(String);
+pub struct ServeStatic {
+    base_path: PathBuf,
+}
 
 impl ServeStatic {
     /// Create a new static file server for the given directory.
@@ -124,8 +126,19 @@ impl ServeStatic {
     /// app.use_middleware(serve);
     /// ```
     #[must_use = "This middleware must be added to the app with use_middleware()"]
-    pub const fn new(directory: String) -> Self {
-        Self(directory)
+    pub fn new(directory: impl Into<PathBuf>) -> Self {
+        Self{
+            base_path: directory.into()
+        }
+    }
+    /// Internal Strip the Windows UNC Prefix.
+    fn strip_unc(path: &Path) -> &Path {
+        if let Some(path_str) = path.to_str(){
+            if path_str.starts_with(r"\\?\"){
+                return Path::new(&path_str[4..]);
+            }
+        }
+        path
     }
 
     fn handle_io_error(&self, e: io::Error, path: &Path, response: &mut Response) {
@@ -137,7 +150,7 @@ impl ServeStatic {
 
         eprintln!(
             "ServeStatic: Error accessing path {:?} (Base: {}): {} - Responding with {}",
-            path, &self.0, e, status_code
+            path, &self.base_path.display(), e, status_code
         );
 
         response.set_status(status_code);
@@ -168,76 +181,71 @@ impl ServeStatic {
 impl Middleware for ServeStatic {
     fn handle(&self, request: &mut Request, response: &mut Response, _: &AppContext) -> Outcome {
         let requested_path = request.uri.path().trim_start_matches('/');
-        let base_dir = Path::new(&self.0);
-        let mut target_path = base_dir.join(requested_path);
-
-        match target_path.canonicalize() {
-            Ok(canonical_path) => {
-                // Need to canonicalize base_dir too for reliable comparison
-                match base_dir.canonicalize() {
-                    Ok(canonical_base) => {
-                        if !canonical_path.starts_with(&canonical_base) {
-                            // Path tried to escape the base directory!
-                            eprintln!(
-                                "ServeStatic: Forbidden path traversal attempt: Requested '{}', Resolved '{}' outside base '{}'",
-                                requested_path,
-                                canonical_path.display(),
-                                canonical_base.display()
-                            );
-                            response.set_status(403);
-                            response.send_text("403 Forbidden");
-                            return next!();
-                        }
-                        target_path = canonical_path;
-                    }
-                    Err(e) => {
-                        // Failed to canonicalize base directory - major configuration issue
-                        self.handle_io_error(e, base_dir, response);
-                        return next!();
-                    }
-                }
-            }
-            Err(e) => {
-                self.handle_io_error(e, &target_path, response);
-                return next!();
-            }
+        
+        if requested_path.contains("..") {
+            response.set_status(403);
+            response.send_text("403 Forbidden");
+            return end!(); // Cut of Execution, this is a security risk
         }
 
-        match fs::metadata(&target_path) {
-            Ok(metadata) => {
-                if metadata.is_file() {
-                    match File::open(&target_path) {
-                        Ok(mut file) => {
-                            let mut buffer = Vec::new();
-                            match file.read_to_end(&mut buffer) {
-                                Ok(_) => {
-                                    let content_type = Self::guess_content_type(&target_path);
-                                    response.add_header("Content-Type", content_type)?;
-                                    response.add_header("Content-Length", &buffer.len().to_string())?;
-                                    response.send_bytes(buffer);
-                                }
-                                Err(e) => {
-                                    self.handle_io_error(e, &target_path, response);
+        let full_path = self.base_path.join(requested_path);
+
+        match full_path.canonicalize() {
+            Ok(canonical_target) => {
+                match self.base_path.canonicalize() {
+                    Ok(canonical_base) => {
+                        let clean_target = Self::strip_unc(&canonical_target);
+                        let clean_base = Self::strip_unc(&canonical_base);
+
+                        if !clean_target.starts_with(clean_base) {
+                            response.set_status(403);
+                            response.send_text("403 Forbidden");
+                            return end!(); 
+                        }
+
+                        match fs::metadata(clean_target) {
+                            Ok(metadata) => {
+                                if metadata.is_file() {
+                                    match File::open(clean_target) {
+                                        Ok(mut file) => {
+                                            let mut buffer = Vec::new();
+                                            if file.read_to_end(&mut buffer).is_ok() {
+                                                let ct = Self::guess_content_type(clean_target);
+                                                response.add_header("Content-Type", ct)?;
+                                                response.add_header("Content-Length", &buffer.len().to_string())?;
+                                                response.send_bytes(buffer);
+                                                // We found the file and filled the response.
+                                                // We return end!() so the Router doesn't overwrite us with a 404.
+                                                return end!(); 
+                                            }
+                                        }
+                                        Err(e) => {
+                                            self.handle_io_error(e, clean_target, response);
+                                            return end!();
+                                        }
+                                    }
+                                } else if metadata.is_dir() {
+                                    // We Return next here ServeStatic Can't serve directories.
+                                    // So give control back to the router so if user has defined a handler for the path it will still execute.
+                                    return next!();
                                 }
                             }
-                        }
-                        Err(e) => {
-                            self.handle_io_error(e, &target_path, response);
+                            Err(e) => {
+                                self.handle_io_error(e, clean_target, response);
+                                return end!();
+                            }
                         }
                     }
-                } else if metadata.is_dir() {
-                    eprintln!("ServeStatic: Access denied for directory: {:?}", target_path);
-                    response.set_status(403);
-                    response.send_text("403 Forbidden");
-                } else {
-                    eprintln!("ServeStatic: Path is not a file or directory: {:?}", target_path);
-                    response.set_status(404);
-                    response.send_text("404 Not Found");
+                    Err(e) => {
+                        self.handle_io_error(e, &self.base_path, response);
+                        return end!();
+                    }
                 }
             }
-            Err(e) => {
-                // Error getting metadata (likely Not Found or Permission Denied)
-                self.handle_io_error(e, &target_path, response);
+            Err(_) => {
+                // File not found?
+                // Just give control back to the Router so it can try match!
+                return next!();
             }
         }
 

@@ -15,6 +15,7 @@ fn main() {
         }),
     );
     // Use the ServeStatic middleware to serve static files from the "public" directory
+    //? Heads Up : THe `public` folder must be in the project root for this example to execute properly 
     app.use_middleware(ServeStatic::new("./public".to_string())); // You can change the path to your static files here
 
     //Lets Listen on port 5050

@@ -7,6 +7,7 @@ The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0
 ### Fixed
 - Cargo Test trying to test `guides` module
 - Request Body handling bug happened while receiving large boddies
+- `ServeStatic` Now works in all platforms with some major security and reliablity upgrades.
 
 ### Added
 - New syntatic sugar macros, `end!` & `next_route!`. 

@@ -73,9 +73,10 @@ impl App {
                 use tracing_subscriber::{Layer, prelude::*};
 
                 let layer = tracing_subscriber::fmt::layer()
-                    .with_target(false)
-                    .pretty()
                     .compact()
+                    .with_target(false)
+                    .with_file(false)
+                    .with_line_number(false)
                     .with_target(false)
                     .with_thread_ids(false)
                     .with_level(true)
@@ -134,9 +135,10 @@ impl App {
                 use tracing_subscriber::{Layer, prelude::*};
 
                 let layer = tracing_subscriber::fmt::layer()
-                    .with_target(false)
-                    .pretty()
                     .compact()
+                    .with_target(false)
+                    .with_file(false)
+                    .with_line_number(false)
                     .with_target(false)
                     .with_thread_ids(false)
                     .with_level(true)
