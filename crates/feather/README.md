@@ -10,10 +10,9 @@
 
 ## Why Feather?
 
-- **Middleware-First Architecture**  
-  Everything is a middleware—even if it's not, it produces a middleware in the end.  
-  The new `middleware!` macro makes writing route and middleware closures concise and ergonomic.
-
+- **Simplicity over Complexity**  
+  Feather chooses on simple, easy to use APIs over complex and hard-to-learn abstractions.
+  
 - **Easy State Management Using Context**  
   The Context API makes it very easy to manage state without the use of Extractors/Macros.  
 
@@ -23,13 +22,13 @@
 - **Feel of Async Without Async**  
   Feather is multithreaded by default, running on **Feather-Runtime**.
   
-- **Great Documantation**
+- **Great Documantation**  
   Feather is Fully Documented in [Docs.rs](https://docs.rs/feather/latest/feather/), I bet you could learn all of Feather in just a few hours or so.
 
 
 ## How it works behind the scenes
 
-Feather is powered by **Feather-Runtime**, a custom runtime built for high concurrency and low latency without using Rust's async/await. Each request is handled by a lightweight coroutine(using `may`), enabling thousands of concurrent connections with simple, synchronous code. For more technical details, see [Feather-Runtime](./crates/feather-runtime).
+Feather is powered by **Feather-Runtime**, a custom HTTP Engine built for high concurrency and low latency without using Rust's async/await. Each request is handled by a lightweight coroutine(using `may`), enabling thousands of concurrent connections with simple, synchronous code. For more technical details, see [Feather-Runtime](./crates/feather-runtime).
 
 ---
 
@@ -39,7 +38,7 @@ Add Feather to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feather = "~0.7"
+feather = "~0.8"
 ```
 
 ---

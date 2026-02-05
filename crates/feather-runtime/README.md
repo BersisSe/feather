@@ -1,245 +1,70 @@
-<h1 align="center">🪶 Feather</h1>
+# Feather Runtime
 
-<p align="center">
-  <a href="https://crates.io/crates/feather"><img src="https://img.shields.io/crates/v/feather.svg" alt="Crates.io"/></a>
-  <a href="https://docs.rs/feather"><img src="https://docs.rs/feather/badge.svg" alt="Docs.rs"/></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
-</p>
+Hi! Feather Runtime is the engine that powers [Feather](https://github.com/BersisSe/feather#). I built it because I wanted a web server that feels as simple as writing synchronous Rust, but can still handle thousands of connections without breaking a sweat. If you’re tired of fighting with async/await or just want to see how far coroutines can take you in Rust, you’re in the right place.
 
-## **Feather** is a lightweight, DX-first web framework for Rust. Inspired by the simplicity of Express.js, but designed for Rust’s performance and safety.
-
-## Why Feather?
-
-- **Simplicity over Complexity**  
-  Feather chooses on simple, easy to use APIs over complex and hard-to-learn abstractions.
-  
-- **Easy State Management Using Context**  
-  The Context API makes it very easy to manage state without the use of Extractors/Macros.  
-
-- **All in One**  
-  Feather is a complete web framework that includes routing, middleware, logging, JWT authentication, and more, all in one package.
-
-- **Feel of Async Without Async**  
-  Feather is multithreaded by default, running on **Feather-Runtime**.
-  
-- **Great Documantation**  
-  Feather is Fully Documented in [Docs.rs](https://docs.rs/feather/latest/feather/), I bet you could learn all of Feather in just a few hours or so.
-
-
-## How it works behind the scenes
-
-Feather is powered by **Feather-Runtime**, a custom HTTP Engine built for high concurrency and low latency without using Rust's async/await. Each request is handled by a lightweight coroutine(using `may`), enabling thousands of concurrent connections with simple, synchronous code. For more technical details, see [Feather-Runtime](./crates/feather-runtime).
+It replaces `tiny-http` with a modern, coroutine-based runtime—no async/await required.
 
 ---
 
-## Getting Started
 
-Add Feather to your `Cargo.toml`:
+## 🚀 Features 
 
-```toml
-[dependencies]
-feather = "~0.8"
-```
+- **Coroutines, Not Threads:** Thanks to the [`may`](https://github.com/Xudong-Huang/may) crate, every connection gets its own coroutine (a green thread). This means you can handle a ton of traffic without your server falling over.
+- **Non-blocking I/O:** All sockets are non-blocking, so the server stays snappy even when things get busy.
+- **No async/await Headaches:** Just write normal Rust code. Feather-Runtime takes care of the scheduling magic behind the scenes.
+- **Dynamic HTTP Responses:** Build and send responses however you want—no fuss.
+- **Extensible:** It’s the engine for Feather, but you can use it for your own experiments too.
 
 ---
 
-## Quick Example
+## 🛠️ How It Works
 
+I wanted something that “just works” for high concurrency, but doesn’t make you write async.
+
+- **Coroutines, Not Threads:** Instead of a thread per connection, every connection gets a coroutine (thanks to, `may`). Coroutines are super lightweight, so you can have thousands running at once.
+- **Non-blocking, Event-driven:** Sockets are non-blocking. When a request comes in, it’s handed to a coroutine. If that coroutine needs to wait for I/O, it just yields and lets others do their thing. No wasted CPU, no blocking the whole server.
+- **No async/await, No Lifetimes:** Write normal Rust. No async, no lifetimes, no pinning. The runtime handles all the tricky stuff.
+
+**In summary:**
+> Every request gets its own coroutine. You can spawn background tasks or run blocking code, and Feather-Runtime will keep things fast and responsive no async/await or lifetime headaches.
+
+---
+
+## 📦 Example Usage
+
+Here’s a minimal example of using Feather-Runtime directly (normally, you use it via Feather):
 
 ```rust
-use feather::{App, middleware_fn, next};
-
-#[middleware_fn]
-fn hello() -> feather::Outcome {
-    res.send_text("Hello, world!");
-    next!()
-}
+use feather_runtime::runtime::engine::Engine;
+use feather_runtime::http::{Request, Response};
 
 fn main() {
-    let mut app = App::new();
-    app.get("/", hello);
-    app.listen("127.0.0.1:5050");
+    let engine = Engine::new("127.0.0.1:5050");
+    engine.start();
+    engine.for_each(|req: &mut Request| {
+        let mut res = Response::default();
+        res.send_text("Hello from Feather-Runtime!");
+        res
+    }).unwrap();
 }
-```
-
-That’s all — no async.
-
----
-
-## Middleware in Feather
-
-Middleware is the heart of Feather. You may write it as a closure (using the `middleware!` macro), a struct, or chain them together:
-
-
-```rust
-use feather::{App, middleware_fn, next};
-
-#[middleware_fn]
-fn log_middleware() -> feather::Outcome {
-    println!("Custom global middleware!");
-    next!()
-}
-
-#[middleware_fn]
-fn hello() -> feather::Outcome {
-    res.send_text("Hello, world!");
-    next!()
-}
-
-fn main() {
-    let mut app = App::new();
-    app.use_middleware(log_middleware);
-    app.get("/", hello);
-    app.listen("127.0.0.1:5050");
-}
-```
-
-Or as a struct:
-
-
-```rust
-use feather::{middleware_fn, Request, Response, AppContext, Middleware, next, info};""
-
-struct CustomMiddleware(String);
-
-impl Middleware for CustomMiddleware {
-    fn handle(&self, _request: &mut Request, _response: &mut Response, _ctx: &AppContext) -> feather::Outcome {
-        info!("Hii I am a Struct Middleware and this is my data: {}", self.0);
-        next!()
-    }
-}
-
-
 ```
 
 ---
 
-## State Management using the Context API
+## 🤝 For Contributors
 
-Feather's Context API allows you to manage application-wide state without extractors or macros.
-
-
-```rust
-use feather::{App, middleware_fn, next};
-#[derive(Debug)]
-struct Counter { pub count: i32 }
-
-#[middleware_fn]
-fn count() -> feather::Outcome {
-    let counter = ctx.get_state::<State<Counter>>().unwrap();
-    counter.lock().count += 1;
-    res.send_text(format!("Counted! {}", counter.count));
-    next!()
-}
-
-fn main() {
-    let mut app = App::new();
-    app.context().set_state(State::new(Counter { count: 0 }));
-    app.get("/", count);
-    app.listen("127.0.0.1:5050");
-}
-```
-
-Context is especially useful when needing to access databases and files.
-
-## Built-in JWT Authentication
-
-Feather has a native JWT module activated using a cargo feature `jwt`:
-
-```toml
-[dependencies]
-feather = { version = "*", features = ["jwt"] }
-```
-
-
-```rust
-use feather::{App, jwt_required, middleware_fn, next};
-use feather::jwt::{JwtManager, SimpleClaims};
-
-#[middleware_fn]
-fn token_route() -> feather::Outcome {
-    let token = ctx.jwt().generate_simple("user", 1)?;
-    res.send_text(format!("Token: {}", token));
-    next!()
-}
-
-#[jwt_required]
-#[middleware_fn]
-fn protected(claims: SimpleClaims) -> feather::Outcome {
-    res.send_text(format!("Hello, {}!", claims.sub));
-    next!()
-}
-
-fn main() {
-    let mut app = App::new();
-    let manager = JwtManager::new("secretcode");
-    app.context().set_jwt(manager);
-    app.get("/token", token_route);
-    app.get("/auth", protected);
-    app.listen("127.0.0.1:8080");
-}
-```
----
-
-## Logging
-When you create a new Feather application, it initializes the logger by default.
-
-
-```rust
-fn main() {
-    let mut app = App::new();
-    info!("Feather app ready to serve requests!");
-    // Your app setup here
-    app.listen("127.0.1:5050");
-    
-}
-```
-if you don't want it to be initialized, you can disable it by create a App with `without_logger` method
+If you're contributing to Feather but don't want to mess with low-level server internals, you can mostly ignore this subcrate. Feather-Runtime is designed to handle the core HTTP processing while Feather itself provides higher-level abstractions. If you have a feature request or a problem, open an [issue](https://github.com/BersisSe/feather/issues).
 
 ---
 
-## Goals
+## 📚 Learn More
 
-- Be the simplest Rust web framework to get started with
-- Be modular and easy to extend
-- Focus on DX without sacrificing Rust's safety and performance
-
----
-
-## Contributing
-
-PRs are welcome!  
-If you have ideas or bugs, please [open an issue]([https://github.com/BersisSe/feather/issues) or submit a pull request.
-
-```bash
-# Getting started with dev
-git clone https://github.com/BersisSe/feather.git
-cd feather
-cargo run --example app
-```
+- [Feather Main Repo](https://github.com/BersisSe/feather)
+- [`may` Crate](https://github.com/Xudong-Huang/may)
 
 ---
 
 ## License
 
-Feather is MIT licensed. See [LICENSE](./LICENSE).
+Feather-Runtime is MIT licensed. See [LICENSE](../LICENSE).
 
----
-
-## Acknowledgments
-
-Feather is inspired by [Express.js](https://expressjs.com) and exists to bring that same productivity to Rust.  
-Huge thanks to the Rust community for their support and contributions!  
-Special thanks to the contributors who have helped make Feather better!    
-
----
-
-## Spread the Word
-
-If you like Feather:
-
-- ⭐ Star it on [GitHub](https://github.com/BersisSe/feather),
-- Share it on Reddit, HN, or Discord
-- Build something and show up!
-
----
