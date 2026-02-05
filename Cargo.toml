@@ -4,7 +4,7 @@ members = ["crates/*", "examples/*"]
 exclude = ["benches/axum", "benches/feather"]
 
 [workspace.dependencies]
-feather = { version = "~0.7",path = "./crates/feather", default-features = false }
+feather = { version = "~0.8",path = "./crates/feather", default-features = false }
 feather-runtime = { version = "~0.6", path = "./crates/feather-runtime", default-features = false }
 feather-macros = {version = "~0.2", path = "./crates/feather-macros"}
 http = { version = "1", default-features = false, features = ["std"]}
