@@ -193,7 +193,7 @@ impl Response {
             }
         }
     }
-
+    /// Redirect the Request to the given location using a `location` header.
     pub fn redirect(&mut self, location: &str, permanent: bool) {
         let status = if permanent {
             StatusCode::MOVED_PERMANENTLY

@@ -8,7 +8,7 @@ use http::{Extensions, HeaderMap, Method, Uri, Version};
 use std::str::FromStr;
 use std::{borrow::Cow, collections::HashMap, fmt};
 use urlencoding::decode;
-// TODO : Add remote_addr()
+
 /// Contains a incoming Http Request
 #[derive(Debug)]
 pub struct Request {
@@ -101,6 +101,7 @@ impl Request {
     pub fn path(&self) -> Cow<'_, str> {
         decode(self.uri.path()).unwrap()
     }
+    /// Returns the Remote address of the Request.
     pub fn remote_addr(&self) -> SocketAddr {
         self.addr
     }
