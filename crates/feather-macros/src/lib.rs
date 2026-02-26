@@ -229,9 +229,20 @@ pub fn derive_claim(input: TokenStream) -> TokenStream {
 pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let vis = &input.vis;
-    let sig: &syn::Signature = &input.sig;
+    let sig = &input.sig;
     let block = &input.block;
     let fn_name = &sig.ident;
+
+    // Detect if the function is async. If so, wrap the body in block_on to bridge to sync.
+    let body = if sig.asyncness.is_some() {
+        quote! {
+            feather::runtime::executor::block_on(async move {
+                #block
+            })
+        }
+    } else {
+        quote! { #block }
+    };
 
     let expanded = quote! {
         #vis fn #fn_name(
@@ -239,7 +250,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
             res: &mut feather::Response,
             ctx: &feather::AppContext
         ) -> feather::Outcome {
-            #block
+            #body
         }
     };
     TokenStream::from(expanded)
@@ -280,6 +291,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
 /// struct AuthClaims {
 ///     #[required]
 ///     user_id: String,
+///     #[required]
 ///     username: String,
 /// }
 ///
@@ -357,6 +369,7 @@ pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
     let vis = &input.vis;
+    let sig = &input.sig;
     let block = &input.block;
     let inputs = &input.sig.inputs;
 
@@ -379,38 +392,53 @@ pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    let expanded = quote! {
-        #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
-            let manager = ctx.jwt();
-            let token = match req
-                .headers
-                .get("Authorization")
-                .and_then(|h| h.to_str().ok())
-                .and_then(|h| h.strip_prefix("Bearer ")) {
-                    Some(t) => t,
-                    None => {
-                        res.set_status(401);
-                        res.send_text("Missing or invalid Authorization header");
-                        return feather::next!();
-                    }
-                };
-
-            let #claims_name: #claims_type = match manager.decode(token) {
-                Ok(c) => c,
-                Err(_) => {
+    let inner_logic = quote! {
+        let manager = ctx.jwt();
+        let token = match req
+            .headers
+            .get("Authorization")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|h| h.strip_prefix("Bearer ")) {
+                Some(t) => t,
+                None => {
                     res.set_status(401);
-                    res.send_text("Invalid or expired token");
+                    res.send_text("Missing or invalid Authorization header");
                     return feather::next!();
                 }
             };
 
-            if let Err(_) = #claims_name.validate() {
+        let #claims_name: #claims_type = match manager.decode(token) {
+            Ok(c) => c,
+            Err(_) => {
                 res.set_status(401);
                 res.send_text("Invalid or expired token");
                 return feather::next!();
             }
+        };
 
-            #block
+        if let Err(_) = #claims_name.validate() {
+            res.set_status(401);
+            res.send_text("Invalid or expired token");
+            return feather::next!();
+        }
+
+        #block
+    };
+
+    // Detect if the function is async and bridge accordingly
+    let expanded = if sig.asyncness.is_some() {
+        quote! {
+            #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
+                feather::runtime::executor::block_on(async move {
+                    #inner_logic
+                })
+            }
+        }
+    } else {
+        quote! {
+            #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
+                #inner_logic
+            }
         }
     };
 

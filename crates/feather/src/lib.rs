@@ -145,6 +145,7 @@ pub use crate::middlewares::MiddlewareResult;
 pub use crate::middlewares::builtins;
 pub use feather_runtime::http::{Request, Response};
 pub use feather_runtime::runtime::server::ServerConfig;
+pub use feather_runtime::runtime;
 pub use internals::{App, AppContext, Finalizer, Router};
 
 pub mod prelude {

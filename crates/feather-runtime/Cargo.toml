@@ -32,5 +32,4 @@ default = ["full"]
 full = ["json","log"]
 log = ["dep:log",]
 json = ["dep:serde_json"]
-
-
+async = []
