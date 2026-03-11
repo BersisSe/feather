@@ -145,9 +145,9 @@ pub use crate::middlewares::MiddlewareResult;
 pub use crate::middlewares::builtins;
 pub use feather_runtime::http::{Request, Response};
 pub use feather_runtime::runtime::server::ServerConfig;
-pub use feather_runtime::runtime;
 pub use internals::{App, AppContext, Finalizer, Router};
 
+/// Basic Primatives and Macros, you might need for a Feather App
 pub mod prelude {
     pub use crate::Outcome;
     pub use crate::Request;
@@ -158,6 +158,18 @@ pub mod prelude {
     pub use crate::middleware;
     pub use crate::middleware_fn;
     pub use crate::next;
+    #[cfg(feature = "async")]
+    pub use feather_macros::async_middleware;
+}
+
+///## Feather Async Compatibility Layer Module
+/// Feather provides a custom-made compatibility layer for bridging the gap between async web tooling.  
+/// 
+/// *This is Still very Experimantal. Please Report any problems in github issues!*
+#[cfg(feature = "async")]
+pub mod async_compat{
+    pub use feather_runtime::runtime::executor::block_on;
+    pub use feather_macros::async_middleware;
 }
 // --- IMPORTS END ---
 

@@ -233,16 +233,15 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let block = &input.block;
     let fn_name = &sig.ident;
 
-    // Detect if the function is async. If so, wrap the body in block_on to bridge to sync.
-    let body = if sig.asyncness.is_some() {
-        quote! {
-            feather::runtime::executor::block_on(async move {
-                #block
-            })
-        }
-    } else {
-        quote! { #block }
-    };
+    // Normal Middlewares cannot be async
+    if sig.asyncness.is_some() {
+        return syn::Error::new_spanned(
+            &sig.fn_token,
+            "#[middleware_fn] cannot be used on async functions. Use #[async_middleware] instead.",
+        )
+        .to_compile_error()
+        .into();
+    }
 
     let expanded = quote! {
         #vis fn #fn_name(
@@ -250,16 +249,156 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
             res: &mut feather::Response,
             ctx: &feather::AppContext
         ) -> feather::Outcome {
-            #body
+            #block
         }
     };
     TokenStream::from(expanded)
 }
 
+/// Attribute macro for defining async middleware functions with automatic signature injection.
+///
+/// This macro eliminates boilerplate by automatically providing `req`, `res`, and `ctx` parameters
+/// to your async middleware function. It transforms an async function into a proper Feather middleware
+/// by bridging it to Feather's sync runtime using the async compat layer.
+///
+/// # What This Macro Does
+///
+/// The `#[async_middleware]` macro:
+/// - Injects three parameters into your function:
+///   - `req: &mut Request` - The HTTP request
+///   - `res: &mut Response` - The HTTP response
+///   - `ctx: &AppContext` - Application context for accessing state
+/// - Wraps the async body in `block_on` so it runs inside a May coroutine
+///
+/// Your function must be `async` and return `Outcome`.
+///
+/// # Basic Example
+///
+/// ```rust,ignore
+/// use feather::async_middleware;
+///
+/// #[async_middleware]
+/// async fn fetch_data() -> Outcome {
+///     let result = reqwest::get("https://api.example.com").await;
+///     res.send_text(result);
+///     next!()
+/// }
+///
+/// app.get("/data", fetch_data);
+/// ```
+///
+/// # With Database Access
+///
+/// ```rust,ignore
+/// use feather::{App, async_middleware};
+///
+/// #[async_middleware]
+/// async fn get_users() -> Outcome {
+///     let users = sqlx::query("SELECT * FROM users")
+///         .fetch_all(&pool)
+///         .await?;
+///     res.send_json(users);
+///     next!()
+/// }
+///
+/// let mut app = App::new();
+/// app.get("/users", get_users);
+/// ```
+///
+/// # Compared to `#[middleware_fn]`
+///
+/// Use `#[async_middleware]` when you need to use async ecosystem crates like `sqlx`, `reqwest`, etc.
+/// Use `#[middleware_fn]` for everything else it's lighter and simpler:
+///
+/// ```rust,ignore
+/// // #[middleware_fn] - sync, lightweight, default choice
+/// #[middleware_fn]
+/// fn log_requests() -> Outcome {
+///     println!("{} {}", req.method, req.uri);
+///     next!()
+/// }
+///
+/// // #[async_middleware] - when you need .await
+/// #[async_middleware]
+/// async fn fetch_from_db() -> Outcome {
+///     let data = sqlx::query("...").fetch_one(&pool).await?;
+///     res.send_json(data);
+///     next!()
+/// }
+/// ```
+///
+/// # Important: Compile Errors
+///
+/// Using the wrong macro for the wrong function type will result in a compile error:
+///
+/// ```rust,ignore
+/// // ❌ Compile error - use #[async_middleware] instead
+/// #[middleware_fn]
+/// async fn my_handler() -> Outcome { ... }
+///
+/// // ❌ Compile error - use #[middleware_fn] instead
+/// #[async_middleware]
+/// fn my_handler() -> Outcome { ... }
+/// ```
+///
+/// # Accessing Application State
+///
+/// ```rust,ignore
+/// use feather::{State, async_middleware};
+///
+/// #[async_middleware]
+/// async fn fetch_user() -> Outcome {
+///     let pool = ctx.get_state::<State<PgPool>>().unwrap();
+///     let user = sqlx::query("SELECT * FROM users WHERE id = $1")
+///         .bind(req.param("id"))
+///         .fetch_one(&*pool)
+///         .await?;
+///     res.send_json(user);
+///     next!()
+/// }
+/// ```
+///
+/// # See Also
+///
+/// - [`#[middleware_fn]`](attr.middleware_fn.html) - The sync counterpart for non-async middleware
+/// - [`#[jwt_required]`](attr.jwt_required.html) - For JWT protected routes
+/// - [Middlewares Guide](https://docs.rs/feather/latest/feather/guides/middlewares/) for more patterns
+#[proc_macro_attribute]
+pub fn async_middleware(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as ItemFn);
+    let vis = &input.vis;
+    let sig = &input.sig;
+    let block = &input.block;
+    let fn_name = &sig.ident;
+
+    // Checking for asyncness
+    if sig.asyncness.is_none() {
+        return syn::Error::new_spanned(
+            &input.sig.fn_token,
+            "#[async_middleware] can only be used on async functions. Use #[middleware_fn] for sync functions.",
+        )
+        .to_compile_error()
+        .into();
+    }
+    let expanded = quote! {
+        #vis fn #fn_name(
+            req: &mut feather::Request,
+            res: &mut feather::Response,
+            ctx: &feather::AppContext
+        ) -> feather::Outcome {
+            feather::async_compat::block_on(async move {
+                #block
+            })
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
 /// Attribute macro for creating JWT-protected middleware.
 ///
-/// Combines with `#[middleware_fn]` to automatically extract and validate JWT claims
-/// from the `Authorization` header. Only works with `#[middleware_fn]`.
+/// Combines with `#[middleware_fn]` or `#[async_middleware]` to automatically 
+/// extract and validate JWT claims from the `Authorization` header.
 ///
 /// # How It Works
 ///
@@ -369,7 +508,6 @@ pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let fn_name = &input.sig.ident;
     let vis = &input.vis;
-    let sig = &input.sig;
     let block = &input.block;
     let inputs = &input.sig.inputs;
 
@@ -425,20 +563,10 @@ pub fn jwt_required(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #block
     };
 
-    // Detect if the function is async and bridge accordingly
-    let expanded = if sig.asyncness.is_some() {
-        quote! {
-            #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
-                feather::runtime::executor::block_on(async move {
-                    #inner_logic
-                })
-            }
-        }
-    } else {
-        quote! {
-            #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
-                #inner_logic
-            }
+    // Detection no longer needed async_middleware or middleware_fn already handle them.
+    let expanded = quote! {
+        #vis fn #fn_name(req: &mut feather::Request, res: &mut feather::Response, ctx: &feather::AppContext) -> feather::Outcome {
+            #inner_logic
         }
     };
 

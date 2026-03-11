@@ -5,11 +5,12 @@ edition = "2024"
 publish = false
 
 [features]
+default = ["async"]
 async = ["feather/async"]
 
 [dependencies]
 feather = { workspace = true, features = ["log", "jwt"] }
-async-std = "1.13.2"
+smol = "2"
 serde = { version = "1.0", features = ["derive"] }
 
 [[bin]]

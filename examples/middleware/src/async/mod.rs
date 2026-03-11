@@ -59,8 +59,10 @@ fn main() {
 #[cfg(feature = "async")]
 #[feather::middleware_fn]
 async fn delayed_welcome(_req: Request, res: Response, _ctx: AppContext) -> feather::Outcome {
+    use std::time::Duration;
+
     feather::info!("Async function middleware started...");
-    async_std::task::sleep(std::time::Duration::from_secs(1)).await;
+    smol::Timer::after(Duration::from_secs(2)).await;
     res.send_text("Hello from the Async-Bridged world!");
     next!()
 }

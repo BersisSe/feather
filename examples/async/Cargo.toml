@@ -1,0 +1,18 @@
+[package]
+name = "async"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[features]
+
+
+[dependencies]
+feather = { workspace = true, features = ["log", "async"] }
+smol = "2"
+serde = { version = "1.0", features = ["derive"] }
+
+[[bin]]
+name = "async-compat"
+path = "src/main.rs"
+

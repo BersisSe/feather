@@ -3,7 +3,6 @@ mod bridge_impl {
     use feather::{info, next, Request, Response, AppContext, Outcome, MiddlewareResult};
     use std::time::Duration;
     use serde::{Deserialize, Serialize};
-    use async_std::future::timeout;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     #[derive(feather::Claim, Clone, Serialize, Deserialize)]
@@ -26,9 +25,9 @@ mod bridge_impl {
 
             // Simulate high latency on the first call to trigger the bridge timeout logic
             if count == 0 {
-                async_std::task::sleep(Duration::from_millis(800)).await;
+                smol::Timer::after(Duration::from_millis(800)).await;
             } else {
-                async_std::task::sleep(Duration::from_millis(200)).await;
+                smol::Timer::after(Duration::from_millis(200)).await;
             }
             
             info!("Permissions loaded for UID: {}", user_id);
@@ -82,7 +81,7 @@ mod bridge_impl {
                             }
                             
                             info!("Transient error for UID {}; retrying ({}/{})", claims.user_id, attempts, max_retries);
-                            async_std::task::sleep(Duration::from_millis(100)).await;
+                            mol::Timer::after(Duration::from_millis(100)).await;
                         }
                     }
                 }
