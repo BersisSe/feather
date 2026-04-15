@@ -195,7 +195,7 @@ app.use_middleware(middleware!(|req, res, _ctx| {
     let method = req.method;
     let path = req.uri.clone();
     
-    println!("→ {} {}", method, path);
+    println!("-> {} {}", method, path);
     
     next!()
 }));

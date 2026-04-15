@@ -10,13 +10,7 @@ async = ["feather/async"]
 
 [dependencies]
 feather = { workspace = true, features = ["log", "jwt"] }
-smol = "2"
-serde = { version = "1.0", features = ["derive"] }
 
 [[bin]]
 name = "middleware-sync"
 path = "src/main.rs"
-
-[[bin]]
-name = "middleware-async"
-path = "src/async/mod.rs"

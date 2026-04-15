@@ -165,7 +165,7 @@ pub mod prelude {
 ///## Feather Async Compatibility Layer Module
 /// Feather provides a custom-made compatibility layer for bridging the gap between async web tooling.  
 /// 
-/// *This is Still very Experimantal. Please Report any problems in github issues!*
+/// *This is Still very Experimantal. Please Report any problems on github issues!*
 #[cfg(feature = "async")]
 pub mod async_compat{
     pub use feather_runtime::runtime::executor::block_on;
@@ -190,8 +190,10 @@ macro_rules! next {
 /// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::NextRoute)`
 ///
 /// **Behavior**: Skips the current middleware stack or route handler.
-/// - In Global Middleware: Jumps straight to the Routing phase.
-/// - In a Route: Skips to the next matching route (useful conditional routing).
+/// - In Global Middleware: Jumps straight to the Routing phase.  
+/// - In a Route: Skips to the next matching route (useful conditional routing). </br>
+///   **Note: this is a niche use case most global middleware should use `next!` to continue
+///   or `end!` to halt.**
 #[macro_export]
 macro_rules! next_route {
     () => {

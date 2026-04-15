@@ -9,8 +9,7 @@ publish = false
 
 [dependencies]
 feather = { workspace = true, features = ["log", "async"] }
-smol = "2"
-serde = { version = "1.0", features = ["derive"] }
+futures-timer = "3"
 
 [[bin]]
 name = "async-compat"

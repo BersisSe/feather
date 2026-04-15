@@ -14,6 +14,7 @@ This document outlines the planned features and improvements for the Feather fra
 - Develop a Event/Hook System
 - Develop a Plugin/Extension System
 - Chunked Request and Responses
+- Add support for HTTP/2
 - Form Helpers
 - A Better Ecosystem of Middlewares
 

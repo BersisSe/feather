@@ -4,8 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-### Changes
+
+### Added
+- Custom Async Executor for the `async-compat`
+- New `async_middleware` for asynchronous middlewares..
+- Feather Runtime is now totally aligns with HTTP/1.1 specification and has better error handling and logging.
+- New `json_as` method on the `Request` object to directly deserialize JSON body into a struct with validation.
+- New field in `ServerConfig` to control whether the `Server` header is included in responses.
+
+### Changed
 - Strip unnecessary comments.  
+- Contexts inner storage is now private to prevent misuse and ensure better encapsulation.
+- The date header is now added by the server instead of the Requests `to_raw()` method.
+### Fixed
+- Server using the servers own IP address instead of peers IP address
+- A bug where split across requests could cause the server to misinterpret the request boundaries, leading to malformed requests being processed.
 
 
 

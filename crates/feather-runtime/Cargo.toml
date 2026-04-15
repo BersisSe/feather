@@ -8,8 +8,6 @@ license = "MIT"
 
 [dependencies]
 bytes = { workspace = true }
-chrono = { workspace = true }
-crossbeam = { workspace = true }
 http = { workspace = true }
 httparse = { workspace = true }
 log = { workspace = true , optional = true}
@@ -18,13 +16,12 @@ serde_json = { workspace = true, optional = true}
 serde_urlencoded = { workspace = true}
 thiserror = { workspace = true }
 urlencoding = {workspace = true}
-parking_lot ={ workspace = true}
+
 may = { workspace = true }
 itoa = { workspace = true}
 num_cpus ={ version = "1.17"}
 
 [dev-dependencies]
-simple_logger = "5.0.0"
 serde = {version = "1.0", features = ["derive"]}
 
 [features]
@@ -33,3 +30,7 @@ full = ["json","log"]
 log = ["dep:log",]
 json = ["dep:serde_json"]
 async = []
+
+[lib]
+test = false
+doctest = false

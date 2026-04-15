@@ -3,7 +3,7 @@
 //! //! The POST handler expects a JSON body with a "username" field and responds accordingly.
 //! //! The server listens on port 5050.
 
-use feather::{App, info, json, middleware, middleware_fn, next};
+use feather::{App, Value, info, json, middleware, middleware_fn, next};
 
 fn main() {
     // Lets Create a App instance named api

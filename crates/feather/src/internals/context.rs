@@ -185,7 +185,7 @@ impl<S: Clone> State<S> {
 /// let config = ctx.get_state::<State<Config>>();
 /// ```
 pub struct AppContext {
-    pub inner: Arc<RwLock<HashMap<TypeId, Arc<Erased>>>>,
+    inner: Arc<RwLock<HashMap<TypeId, Arc<Erased>>>>,
     #[cfg(feature = "jwt")]
     jwt: Option<JwtManager>,
 }
@@ -644,7 +644,7 @@ mod tests {
 
         ctx.set_state(Ok::<i32, String>(42));
         ctx.set_state(Err::<i32, String>("error".to_string()));
-
+        // Last set wins, so the Ok value will be overwritten by the Err value
         let ok_value = ctx.get_state::<Result<i32, String>>();
         assert_ne!(*ok_value, Ok(42));
 

@@ -50,14 +50,21 @@ impl Request {
         let version = match request.version {
             Some(0) => Version::HTTP_10,
             Some(1) => Version::HTTP_11,
-            _ => Version::HTTP_11,
+            _ => {
+                // Unknown version — default to HTTP/1.1 and let the handler deal with it
+                #[cfg(feature = "log")]
+                log::warn!("Unknown HTTP version, defaulting to HTTP/1.1");
+                Version::HTTP_11
+            }
         };
         let mut header_map = HeaderMap::new();
         for header in request.headers.iter() {
             let name = http::header::HeaderName::from_bytes(header.name.as_bytes()).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse header name: {}", e))) })?;
             let value = http::header::HeaderValue::from_bytes(header.value).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse header value: {}", e))) })?;
 
-            header_map.insert(name, value);
+            // Use append instead of insert to preserve duplicate headers
+            // (e.g. multiple Cookie or Accept headers sent by the client)
+            header_map.append(name, value);
         }
 
         let extensions = Extensions::new();
@@ -73,6 +80,17 @@ impl Request {
         })
     }
 
+    /// Deserializes the request body as JSON into the given type.
+    /// Returns an error if the body is not valid JSON or doesn't match the expected type.
+    ///
+    /// ```rust,ignore
+    /// let payload: MyStruct = req.json()?;
+    /// ```
+    #[cfg(feature = "json")]
+    pub fn json_as<T: serde::de::DeserializeOwned>(&self) -> Result<T, Error> {
+        serde_json::from_slice(&self.body).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse JSON body: {}", e))) })
+    }
+    
     /// Parses the body of the request as Serde JSON Value. Returns an error if the body is not valid JSON.  
     /// This method is useful for parsing JSON payloads in requests.  
     #[cfg(feature = "json")]
@@ -97,9 +115,12 @@ impl Request {
         self.params.get(key).map(|v| &**v)
     }
 
-    /// Returns the path of the Request
-    pub fn path(&self) -> Cow<'_, str> {
-        decode(self.uri.path()).unwrap()
+    /// Returns the percent-decoded path of the Request.
+    /// Returns an error if the path contains invalid percent-encoding.
+    pub fn path(&self) -> Result<Cow<'_, str>, Error> {
+        decode(self.uri.path()).map_err(|e| -> Error {
+            Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to decode path: {}", e)))
+        })
     }
     /// Returns the Remote address of the Request.
     pub fn remote_addr(&self) -> SocketAddr {
