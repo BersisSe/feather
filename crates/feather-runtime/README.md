@@ -2,7 +2,7 @@
 
 Hi! Feather Runtime is the engine that powers [Feather](https://github.com/BersisSe/feather#). I built it because I wanted a web server that feels as simple as writing synchronous Rust, but can still handle thousands of connections without breaking a sweat. If you’re tired of fighting with async/await or just want to see how far coroutines can take you in Rust, you’re in the right place.
 
-It replaces `tiny-http` with a modern, coroutine-based runtime—no async/await required.
+It replaces `tiny-http` with a modern, coroutine-based runtime-no async/await required.
 
 ---
 
@@ -12,7 +12,7 @@ It replaces `tiny-http` with a modern, coroutine-based runtime—no async/await 
 - **Coroutines, Not Threads:** Thanks to the [`may`](https://github.com/Xudong-Huang/may) crate, every connection gets its own coroutine (a green thread). This means you can handle a ton of traffic without your server falling over.
 - **Non-blocking I/O:** All sockets are non-blocking, so the server stays snappy even when things get busy.
 - **No async/await Headaches:** Just write normal Rust code. Feather-Runtime takes care of the scheduling magic behind the scenes.
-- **Dynamic HTTP Responses:** Build and send responses however you want—no fuss.
+- **Dynamic HTTP Responses:** Build and send responses however you want-no fuss.
 - **Extensible:** It’s the engine for Feather, but you can use it for your own experiments too.
 
 ---

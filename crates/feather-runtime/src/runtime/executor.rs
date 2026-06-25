@@ -18,8 +18,6 @@ static VTABLE: RawWakerVTable = RawWakerVTable::new(
     |ptr| {
         let arc = unsafe { Arc::from_raw(ptr as *const Coroutine) };
         let cloned = Arc::clone(&arc);
-        // Forget the original so we don't decrement its refcount —
-        // the caller still owns that pointer.
         std::mem::forget(arc);
         RawWaker::new(Arc::into_raw(cloned) as *const (), &VTABLE)
     },
@@ -63,7 +61,7 @@ pub fn block_on<F: Future>(fut: F) -> F::Output {
             .unwrap_or_else(|_| panic!("block_on must be called from within a May coroutine context.")),
     );
 
-    // Convert the Arc into a raw pointer — ownership is transferred into the RawWaker.
+    // Convert the Arc into a raw pointer ownership is transferred into the RawWaker.
     // The vtable drop entry is responsible for eventually calling Arc::from_raw to
     // reclaim it.
     let raw_waker = RawWaker::new(Arc::into_raw(current_co) as *const (), &VTABLE);
@@ -78,8 +76,6 @@ pub fn block_on<F: Future>(fut: F) -> F::Output {
     loop {
         match fut.as_mut().poll(&mut cx) {
             Poll::Ready(res) => return res,
-            // Future not ready — park the coroutine. The waker will call
-            // unpark() when the future's resource is ready, resuming us here.
             Poll::Pending => coroutine::park(),
         }
     }

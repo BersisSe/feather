@@ -16,6 +16,7 @@ The format is inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0
 - Strip unnecessary comments.  
 - Contexts inner storage is now private to prevent misuse and ensure better encapsulation.
 - The date header is now added by the server instead of the Requests `to_raw()` method.
+
 ### Fixed
 - Server using the servers own IP address instead of peers IP address
 - A bug where split across requests could cause the server to misinterpret the request boundaries, leading to malformed requests being processed.

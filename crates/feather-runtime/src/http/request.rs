@@ -39,10 +39,8 @@ impl Request {
 
         request.parse(headers_raw).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse request: {}", e))) })?;
 
-        // Get the method string, ensuring it exists
         let method_str = request.method.ok_or_else(|| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, "Missing HTTP method")) })?;
 
-        // Validate method against known HTTP methods
         let method = Method::from_str(method_str).map_err(|_| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Invalid HTTP method: {}", method_str))) })?;
         let path = request.path.ok_or_else(|| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, "Failed to parse URI")) })?;
         let uri: Uri = path.parse().map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse URI: {}", e))) })?;
@@ -51,7 +49,6 @@ impl Request {
             Some(0) => Version::HTTP_10,
             Some(1) => Version::HTTP_11,
             _ => {
-                // Unknown version — default to HTTP/1.1 and let the handler deal with it
                 #[cfg(feature = "log")]
                 log::warn!("Unknown HTTP version, defaulting to HTTP/1.1");
                 Version::HTTP_11
@@ -62,8 +59,6 @@ impl Request {
             let name = http::header::HeaderName::from_bytes(header.name.as_bytes()).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse header name: {}", e))) })?;
             let value = http::header::HeaderValue::from_bytes(header.value).map_err(|e| -> Error { Box::new(io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse header value: {}", e))) })?;
 
-            // Use append instead of insert to preserve duplicate headers
-            // (e.g. multiple Cookie or Accept headers sent by the client)
             header_map.append(name, value);
         }
 

@@ -1,52 +1,25 @@
-use std::time::Duration;
+//! This example demonstrates how to use the async compat layer to interact with async tooling
+//! Still async compat layer is really new and very experimental so expect bugs, and we do not recommend using it in a production setting
 
-use feather::{App, Outcome, end, info, middleware_fn, next, prelude::async_middleware};
+
+use std::time::Duration;
+use feather::{App, info, next, async_compat::async_middleware};
 
 fn main() {
     let mut app = App::new();
     app.workers(20);
     app.get("/", first);
-    app.get("/sync", sec);
     app.listen("127.0.0.1:5050");
-    
 }
-/// Create async middleware using futures-timer (executor-agnostic)
+
+/// Create async middleware and simulate a async operation using a delay
 #[async_middleware]
 async fn first() -> Outcome{
     info!("First Middleware Ran");
-    // Use futures_timer which works with any executor
     futures_timer::Delay::new(Duration::from_secs(5)).await;
     info!("Very Intensive Thing done!");
     res.send_html("<h1>Done!</h1>");
     res.add_header("Connection", "close").ok();
     res.set_status(201);
-    next!()
-}
-
-#[async_middleware]
-async fn sec() -> Outcome{
-    use std::time::SystemTime;
-    use std::thread;
-    
-    let time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    
-    let before = SystemTime::now();
-    println!("[{}] Request started (thread: {:?})", time, thread::current().id());
-    
-    futures_timer::Delay::new(Duration::from_secs(5)).await;
-    
-    let elapsed = before.elapsed().unwrap();
-    let after = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    
-    println!("[{}] Request finished. Elapsed: {}ms", after, elapsed.as_millis());
-    
-    res.send_text("done");
-    res.add_header("Connection", "close").ok();
     next!()
 }

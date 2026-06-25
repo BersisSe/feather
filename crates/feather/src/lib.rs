@@ -158,14 +158,13 @@ pub mod prelude {
     pub use crate::middleware;
     pub use crate::middleware_fn;
     pub use crate::next;
-    #[cfg(feature = "async")]
-    pub use feather_macros::async_middleware;
 }
 
 ///## Feather Async Compatibility Layer Module
-/// Feather provides a custom-made compatibility layer for bridging the gap between async web tooling.  
-/// 
-/// *This is Still very Experimantal. Please Report any problems on github issues!*
+/// Feather provides a custom-made compatibility layer for bridging the gap between async web tooling.  <br/>
+/// *"Feather may never be totally async but that does not mean it cannot speak async"* <br/>
+/// <br/>
+/// *This is Still very Experimental. Please Report any problems on github issues!*
 #[cfg(feature = "async")]
 pub mod async_compat{
     pub use feather_runtime::runtime::executor::block_on;

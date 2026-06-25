@@ -207,12 +207,11 @@ impl Server {
                 let prev_len = buffer.len();
                 let n = stream.read(&mut temp)?;
                 if n == 0 {
-                    return Ok(()); // client closed connection, return Ok().
+                    return Ok(()); 
                 }
 
                 buffer.extend_from_slice(&temp[..n]);
 
-                // Check for boundary, starting from up to 3 bytes before new data
                 let check_from = prev_len.saturating_sub(3);
                 if buffer[check_from..].windows(4).any(|w| w == b"\r\n\r\n") {
                     break;
@@ -291,7 +290,6 @@ impl Server {
                     }
                     body.extend_from_slice(&temp[..n]);
                 }
-                // The final read may have overshot — save the excess
                 if body.len() > content_length {
                     pipeline_buffer = body.split_off(content_length);
                 }
@@ -311,7 +309,6 @@ impl Server {
 
             match result {
                 Ok(ServiceResult::Response(mut response)) => {
-                    // Inject Date header if the service didn't set one (RFC 7231 §7.1.1.2)
                     if response.headers.get(http::header::DATE).is_none() {
                         response.add_header("Date", &Self::http_date_now()).ok();
                         if config.server_identification {
