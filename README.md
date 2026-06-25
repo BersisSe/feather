@@ -241,5 +241,3 @@ If you like Feather:
 - ⭐ Star it on [GitHub](https://github.com/BersisSe/feather),
 - Share it on Reddit, HN, or Discord
 - Build something and show up!
-
----
