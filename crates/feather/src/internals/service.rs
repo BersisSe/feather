@@ -44,9 +44,16 @@ impl AppService {
         // Run route-specific middleware
         let mut found = false;
         for route in routes.iter().filter(|r| r.method == method) {
-            if let Some(params) = Self::match_route(&route.path, &request.path()) {
+            let request_path = match request.path() {
+                Ok(p) => p,
+                Err(_) => {
+                    response.set_status(400).send_text("Bad Request: Invalid URI");
+                    return response;
+                }
+            };
+            if let Some(params) = Self::match_route(&route.path, &request_path) {
                 request.set_params(params);
-                match route.middleware.handle(request, &mut response, &context) {
+                match route.middleware.handle(&mut request, &mut response, &context) {
                     Ok(crate::middlewares::MiddlewareResult::NextRoute) => {
                         // Skip this match and keep looking for the next matching route
                         continue;
@@ -56,6 +63,7 @@ impl AppService {
                         break;
                     }
                     Err(e) => {
+                        found = true;
                         if let Some(handler) = &error_handler {
                             handler(e, &request, &mut response)
                         } else {

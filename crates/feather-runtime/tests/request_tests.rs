@@ -17,7 +17,7 @@ fn test_parse_simple_get_request() {
     let raw = b"GET /test HTTP/1.1\r\nHost: example.com\r\n\r\n";
     let request = Request::parse(raw, Bytes::new(), ADDR).unwrap();
     assert_eq!(request.method.as_str(), "GET");
-    assert_eq!(request.path().as_ref(), "/test");
+    assert_eq!(request.path().unwrap().as_ref(), "/test");
     assert_eq!(request.headers.len(), 1);
 }
 
@@ -27,7 +27,7 @@ fn test_parse_request_with_body() {
     let body = b"Hello World";
     let request = Request::parse(headers_raw, Bytes::from_static(body), ADDR).unwrap();
     assert_eq!(request.method.as_str(), "POST");
-    assert_eq!(request.path().as_ref(), "/submit");
+    assert_eq!(request.path().unwrap().as_ref(), "/submit");
     assert_eq!(*request.body, *b"Hello World");
 }
 

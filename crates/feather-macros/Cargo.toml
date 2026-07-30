@@ -12,6 +12,8 @@ syn = {version = "2.0", features = ["full"]}
 
 [lib]
 proc-macro = true
+test = false
+doctest = false
 
 [features]
 jwt = []

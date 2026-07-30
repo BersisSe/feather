@@ -4,5 +4,13 @@ version = "0.0.0"
 edition = "2024"
 publish = false
 
+[features]
+default = ["async"]
+async = ["feather/async"]
+
 [dependencies]
-feather = { workspace = true, features = ["log"] }
+feather = { workspace = true, features = ["log", "jwt"] }
+
+[[bin]]
+name = "middleware-sync"
+path = "src/main.rs"

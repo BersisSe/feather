@@ -147,6 +147,7 @@ pub use feather_runtime::http::{Request, Response};
 pub use feather_runtime::runtime::server::ServerConfig;
 pub use internals::{App, AppContext, Finalizer, Router};
 
+/// Basic Primatives and Macros, you might need for a Feather App
 pub mod prelude {
     pub use crate::Outcome;
     pub use crate::Request;
@@ -157,6 +158,19 @@ pub mod prelude {
     pub use crate::middleware;
     pub use crate::middleware_fn;
     pub use crate::next;
+}
+
+///## Feather Async Compatibility Layer Module
+/// Feather provides a custom-made compatibility layer for bridging the gap between async web tooling.  <br/>
+/// *"Feather may never be totally async but that does not mean it cannot speak async"* <br/>
+/// <br/>
+/// *This is Still very Experimental. Please Report any problems on github issues!*
+#[cfg(feature = "async")]
+pub mod async_compat{
+    pub use feather_runtime::runtime::executor::block_on;
+    pub use feather_runtime::runtime::executor::block_on_with_timeout;
+    pub use feather_runtime::runtime::timeout::{Delay, TimeoutError};
+    pub use feather_macros::async_middleware;
 }
 // --- IMPORTS END ---
 
@@ -177,8 +191,10 @@ macro_rules! next {
 /// This macro is just a syntactic sugar over the `Ok(MiddlewareResult::NextRoute)`
 ///
 /// **Behavior**: Skips the current middleware stack or route handler.
-/// - In Global Middleware: Jumps straight to the Routing phase.
-/// - In a Route: Skips to the next matching route (useful conditional routing).
+/// - In Global Middleware: Jumps straight to the Routing phase.  
+/// - In a Route: Skips to the next matching route (useful conditional routing). </br>
+///   **Note: this is a niche use case most global middleware should use `next!` to continue
+///   or `end!` to halt.**
 #[macro_export]
 macro_rules! next_route {
     () => {

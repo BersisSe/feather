@@ -56,8 +56,12 @@ impl Response {
         // Start buffer with a reasonable capacity to avoid reallocations.
         let mut buf = BytesMut::with_capacity(512 + body_len);
 
-        // --- 1. Status Line (HTTP/1.1 200 OK\r\n) ---
-        buf.extend_from_slice(b"HTTP/1.1 ");
+        // --- 1. Status Line (e.g. HTTP/1.1 200 OK\r\n) ---
+        let version_str = match self.version {
+            http::Version::HTTP_10 => b"HTTP/1.0 ".as_ref(),
+            _ => b"HTTP/1.1 ".as_ref(),
+        };
+        buf.extend_from_slice(version_str);
 
         // Use itoa::Buffer for stack-allocated status code formatting
         let mut status_buffer = itoa::Buffer::new();
@@ -80,17 +84,10 @@ impl Response {
             buf.extend_from_slice(b"\r\n");
         }
 
-        // --- 3. Date Header Insertion (Crucial for HTTP/1.1) ---
-        // Insert Date header if the user hasn't explicitly set it.
-        // NOTE: This still uses a string allocation via `to_rfc2822()`.
-        // For the absolute fastest approach, this string would be cached system-wide
-        // and updated every second.
-        if !self.headers.contains_key("date") {
-            let date_str = chrono::Utc::now().to_rfc2822();
-            buf.extend_from_slice(b"date: ");
-            buf.extend_from_slice(date_str.as_bytes());
-            buf.extend_from_slice(b"\r\n");
-        }
+        // --- 3. Date Header ---
+        // NOTE: Date is injected by the server layer (server.rs step 7) using http_date_now().
+        // If somehow it wasn't set (e.g. Response used outside the server), we skip it here
+        // rather than pulling in chrono. Callers can always set it explicitly via add_header.
 
         // --- 4. Content-Length Header Insertion ---
         // Insert Content-Length if it's not set AND there is a body.
@@ -194,17 +191,20 @@ impl Response {
         }
     }
     /// Redirect the Request to the given location using a `location` header.
-    pub fn redirect(&mut self, location: &str, permanent: bool) {
+    /// Returns an error if the location string contains invalid header characters.
+    pub fn redirect(&mut self, location: &str, permanent: bool) -> Result<(), super::errors::HeaderError> {
         let status = if permanent {
             StatusCode::MOVED_PERMANENTLY
         } else {
             StatusCode::FOUND
         };
         self.set_status(status.as_u16());
-        self.headers.insert(HeaderName::from_static("location"), HeaderValue::from_str(location).unwrap());
+        let location_value = HeaderValue::from_str(location)?;
+        self.headers.insert(HeaderName::from_static("location"), location_value);
         self.body = Some(Bytes::from(format!("Redirecting to {}", location)));
         let len = self.body.as_ref().unwrap().len();
         self.headers.insert(HeaderName::from_static("content-length"), Self::len_to_header_value(len));
+        Ok(())
     }
 
     /// A Utily Function for wrapping HeaderValue for Content-Lenght

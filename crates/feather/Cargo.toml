@@ -11,7 +11,6 @@ keywords = ["http", "web", "framework", "minimal", "rust"]
 categories = ["web-programming", "network-programming"]
 
 [dependencies]
-chrono = { workspace = true }
 feather-runtime = { workspace = true}
 feather-macros = {workspace = true}
 jsonwebtoken = { workspace = true, optional = true }
@@ -20,9 +19,14 @@ serde_json = { workspace = true, optional = true }
 log ={ workspace = true, optional = true }
 tracing-subscriber = { version = "0.3", optional = true }
 parking_lot = { workspace = true }
+time = { workspace = true, optional = true }
 
 [features]
 default = ["log"]
 log = ["dep:log","dep:tracing-subscriber", "feather-runtime/log"]
 json = ["dep:serde", "dep:serde_json", "feather-runtime/json"]
-jwt = ["dep:jsonwebtoken","json", "feather-macros/jwt"]
+jwt = ["dep:jsonwebtoken","dep:time","json", "feather-macros/jwt"]
+async = ["feather-runtime/async"]
+
+[lib]
+doctest = false

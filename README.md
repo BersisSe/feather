@@ -62,7 +62,7 @@ fn main() {
 }
 ```
 
-That’s all — no async.
+That’s all - no async.
 
 ---
 

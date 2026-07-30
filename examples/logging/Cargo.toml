@@ -6,4 +6,3 @@ publish = false
 
 [dependencies]
 feather = { workspace = true , features = ["log"] }
-simple_logger = { version = "5.0"}
