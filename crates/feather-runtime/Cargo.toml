@@ -23,6 +23,7 @@ num_cpus ={ version = "1.17"}
 
 [dev-dependencies]
 serde = {version = "1.0", features = ["derive"]}
+feather-runtime = { path = ".", features = ["async"] }
 
 [features]
 default = ["full"]

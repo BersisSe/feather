@@ -168,6 +168,8 @@ pub mod prelude {
 #[cfg(feature = "async")]
 pub mod async_compat{
     pub use feather_runtime::runtime::executor::block_on;
+    pub use feather_runtime::runtime::executor::block_on_with_timeout;
+    pub use feather_runtime::runtime::timeout::{Delay, TimeoutError};
     pub use feather_macros::async_middleware;
 }
 // --- IMPORTS END ---

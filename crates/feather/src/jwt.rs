@@ -3,6 +3,7 @@ pub use jsonwebtoken::errors::Error;
 pub use jsonwebtoken::errors::ErrorKind;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use time::OffsetDateTime;
 
 /// Trait for JWT claims validation.
 ///
@@ -190,7 +191,10 @@ impl JwtManager {
     pub fn generate_simple(&self, subject: &str, ttl_hours: i64) -> Result<String, jsonwebtoken::errors::Error> {
         let claims = SimpleClaims {
             sub: subject.to_owned(),
-            exp: chrono::Utc::now().checked_add_signed(chrono::Duration::hours(ttl_hours)).unwrap().timestamp() as usize,
+            exp: OffsetDateTime::now_utc()
+                .checked_add(time::Duration::hours(ttl_hours))
+                .unwrap()
+                .unix_timestamp() as usize,
         };
 
         self.encode(&claims)

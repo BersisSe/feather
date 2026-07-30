@@ -1,7 +1,6 @@
 //! This example demonstrates how to use the async compat layer to interact with async tooling
 //! Still async compat layer is really new and very experimental so expect bugs, and we do not recommend using it in a production setting
 
-
 use std::time::Duration;
 use feather::{App, info, next, async_compat::async_middleware};
 
