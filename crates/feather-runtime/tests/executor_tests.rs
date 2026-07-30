@@ -6,7 +6,6 @@ use std::time::{Duration, Instant};
 use may::coroutine::{self, Coroutine};
 
 use feather_runtime::runtime::executor::{block_on, block_on_with_timeout};
-use feather_runtime::runtime::timeout::TimeoutError;
 
 fn make_waker() -> Waker {
     static VTABLE: RawWakerVTable = RawWakerVTable::new(
